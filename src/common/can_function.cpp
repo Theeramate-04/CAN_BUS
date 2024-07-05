@@ -67,6 +67,18 @@ void handleConfig(void) {
   server.send(200, "application/json", "{\"status\":\"ok\"}");
 }
 
+void setupAP(void){
+    WiFi.softAP(ssid, password);
+    Serial.print("AP IP address: ");
+    Serial.println(WiFi.softAPIP());
+    CAN.setPins (RX_GPIO_NUM, TX_GPIO_NUM);
+    if (!CAN.begin(500E3)) {
+        Serial.println("Starting CAN failed!");
+        while (1);
+    }
+    server.on("/setConfig", HTTP_POST, handleConfig);
+}
+
 void mode1(void){
     for (int i = 0; i < periodicCount; i++) {
         if (now - periodicMessages[i].lastSent >= periodicMessages[i].period) {
@@ -90,14 +102,4 @@ void mode2(void){
     }
 }
 
-void setupAP(void){
-    WiFi.softAP(ssid, password);
-    Serial.print("AP IP address: ");
-    Serial.println(WiFi.softAPIP());
-    CAN.setPins (RX_GPIO_NUM, TX_GPIO_NUM);
-    if (!CAN.begin(500E3)) {
-        Serial.println("Starting CAN failed!");
-        while (1);
-    }
-    server.on("/setConfig", HTTP_POST, handleConfig);
-}
+
