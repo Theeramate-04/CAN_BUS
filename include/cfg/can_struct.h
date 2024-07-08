@@ -1,8 +1,6 @@
 #ifndef CAN_STRUCT_H
 #define CAN_STRUCT_H
 
-#include <Arduino.h>
-
 struct CanMessage {
   uint32_t id;
   uint8_t data[8];

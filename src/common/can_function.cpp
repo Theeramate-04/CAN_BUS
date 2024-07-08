@@ -16,9 +16,10 @@
 
 WebServer server(80);
 
-extern int periodicCount = 0;
-extern int responseCount = 0;
-extern int Mode = 0; 
+extern int periodicCount;
+extern int responseCount;
+extern int Mode; 
+extern int enable;
 static uint32_t now = millis();
 
 extern CanMessage periodicMessages[30];
@@ -45,6 +46,7 @@ void setupAP(void){
 }
 
 void mode1(void){
+  if(enable == 1){
     for (int i = 0; i < periodicCount; i++) {
         if (now - periodicMessages[i].lastSent >= periodicMessages[i].period) {
           CAN.beginExtendedPacket(periodicMessages[i].id);
@@ -53,9 +55,11 @@ void mode1(void){
           periodicMessages[i].lastSent = now;
         }
       }
+  }
 }
 
 void mode2(void){
+  if(enable == 1){
     responseCheck.id = strtoul("0x0C20A0A6", NULL, 16);
     hexStringToBytes("1234000000000000", responseCheck.data);
     for (int i = 0; i < responseCount; i++) {
@@ -65,6 +69,7 @@ void mode2(void){
           CAN.endPacket();
         }
     }
+  }
 }
 
 
