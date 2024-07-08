@@ -22,7 +22,11 @@ void getMode(void) {
 }
 
 void setMode(void) {
-  Mode = server.arg("mode_num").toInt();
+  String body = server.arg("plain");
+  JsonDocument doc;
+  deserializeJson(doc, body);
+
+  Mode = doc["mode_num"];
   Serial.println(Mode);
   if (Mode == 0 || Mode == 1){
     server.send(200, "application/json", "{\"Set mode\":\"ok\"}");
@@ -50,10 +54,10 @@ String bytesToHexString(const uint8_t* byteArray, size_t length) {
 }
 
 void set_periodic_cfg(void) {
-    String body = server.arg("config");
+    String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
-
+    Serial.println(body);
     if (Mode == 0 && enable == 1) {
         Serial.println("Periodic mode in process");
         periodicCount = doc["messages"].size();
@@ -70,10 +74,10 @@ void set_periodic_cfg(void) {
 }
 
 void set_req_res_cfg(void) {
-    String body = server.arg("config");
+    String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
-
+    Serial.println(body);
     if (Mode == 1 && enable == 1) {
         Serial.println("Request-Response mode in process");
         responseCount = doc["messages"].size();
@@ -125,7 +129,11 @@ void get_req_res_cfg(void) {
 }
 
 void start_stop_program(void){
-  enable = server.arg("enable").toInt();
+  String body = server.arg("plain");
+  JsonDocument doc;
+  deserializeJson(doc, body);
+
+  enable = doc["enable"];
   Serial.println(enable);
   if (enable == 0 || enable == 1){
     server.send(200, "application/json", "{\"Set enable\":\"ok\"}");
