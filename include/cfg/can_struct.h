@@ -1,6 +1,8 @@
 #ifndef CAN_STRUCT_H
 #define CAN_STRUCT_H
 
+#include <Arduino.h>
+
 struct CanMessage {
   uint32_t id;
   uint8_t data[8];
@@ -20,8 +22,5 @@ struct CanResponseCheck {
   uint8_t data[8];
 };
 
-CanMessage periodicMessages[30];
-CanResponse responseMessages[30];
-CanResponseCheck responseCheck;
 
 #endif 

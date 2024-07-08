@@ -8,64 +8,22 @@
 #include "cfg/can_struct.h"
 #include "cfg/host.h"
 #include "common/can_function.h"
+#include "common/http_function.h"
+
 
 #define TX_GPIO_NUM   27
 #define RX_GPIO_NUM   26
 
 WebServer server(80);
 
-static int periodicCount = 0;
-static int responseCount = 0;
-static int Mode = 0; 
+extern int periodicCount = 0;
+extern int responseCount = 0;
+extern int Mode = 0; 
 static uint32_t now = millis();
 
-void hexStringToBytes(String hexString, uint8_t *byteArray) {
-  for (int i = 0; i < 8; i++) {
-    byteArray[i] = strtoul(hexString.substring(i*2, i*2+2).c_str(), NULL, 16);
-  }
-}
-
-void handleConfig(void) {
-  String body = server.arg("plain");
-  JsonDocument doc;
-  deserializeJson(doc, body);
-
-  if (doc.containsKey("mode")) {
-    Mode = doc["mode"];
-    switch (Mode) {
-      case 1: 
-        Serial.println("Mode 1 in process");
-        periodicCount = doc["messages"].size();
-        for (int i = 0; i < periodicCount; i++) {
-          periodicMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
-          String dataStr = doc["messages"][i]["data"];
-          hexStringToBytes(dataStr, periodicMessages[i].data);
-          periodicMessages[i].period = doc["messages"][i]["period"];
-          periodicMessages[i].lastSent = 0;
-        }
-        break;
-
-      case 2:
-        Serial.println("Mode 2 in process");
-        responseCount = doc["responses"].size();
-        for (int i = 0; i < responseCount; i++) {
-          responseMessages[i].id = strtoul(doc["responses"][i]["id"], NULL, 16);
-          String dataStr = doc["responses"][i]["data"];
-          Serial.println(dataStr);
-          hexStringToBytes(dataStr, responseMessages[i].data);
-          responseMessages[i].responseId = strtoul(doc["responses"][i]["responseId"], NULL, 16);
-          String responseDataStr = doc["responses"][i]["responseData"];
-          hexStringToBytes(responseDataStr, responseMessages[i].responseData);
-        }
-        break;
-
-      default:
-      break;
-    }
-  }
-
-  server.send(200, "application/json", "{\"status\":\"ok\"}");
-}
+extern CanMessage periodicMessages[30];
+extern CanResponse responseMessages[30];
+extern CanResponseCheck responseCheck;
 
 void setupAP(void){
     WiFi.softAP(ssid, password);
