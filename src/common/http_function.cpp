@@ -14,6 +14,9 @@ static int responseCount = 0;
 static int Mode = 3; 
 static int enable = 3;
 
+void hexStringToBytes(String hexString, uint8_t *byteArray);
+String bytesToHexString(const uint8_t* byteArray, size_t length);
+
 void getMode(void) {
   if (Mode == 0 || Mode == 1){
     String response = "{\"mode\":" + String(Mode) + "}";
@@ -37,6 +40,17 @@ void hexStringToBytes(String hexString, uint8_t *byteArray) {
   for (int i = 0; i < 8; i++) {
     byteArray[i] = strtoul(hexString.substring(i*2, i*2+2).c_str(), NULL, 16);
   }
+}
+
+String bytesToHexString(const uint8_t* byteArray, size_t length) {
+    String hexString;
+    for (size_t i = 0; i < length; i++) {
+        if (byteArray[i] < 16) {
+            hexString += "0";
+        }
+        hexString += String(byteArray[i], HEX);
+    }
+    return hexString;
 }
 
 void set_periodic_cfg(void) {
@@ -82,11 +96,36 @@ void set_req_res_cfg(void) {
 }
 
 void get_periodic_cfg(void) {
-  //                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+  JsonDocument doc;
+  JsonArray messages = doc["messages"].to<JsonArray>();
+
+  for (int i = 0; i < periodicCount; i++) {
+      JsonObject message = messages.createNestedObject();
+      message["id"] = String(periodicMessages[i].id, HEX);
+      message["data"] = bytesToHexString(periodicMessages[i].data, sizeof(periodicMessages[i].data));
+      message["period"] = periodicMessages[i].period;
+  }
+
+  String response;
+  serializeJson(doc, response);
+  server.send(200, "application/json", response);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 }
 
 void get_req_res_cfg(void) {
-  //
+  JsonDocument doc;
+  JsonArray messages = doc["messages"].to<JsonArray>();
+
+  for (int i = 0; i < responseCount; i++) {
+      JsonObject message = messages.createNestedObject();
+      message["id"] = String(responseMessages[i].id, HEX);
+      message["data"] = bytesToHexString(responseMessages[i].data, sizeof(responseMessages[i].data));
+      message["responseId"] = String(responseMessages[i].responseId, HEX);
+      message["responseData"] = bytesToHexString(responseMessages[i].responseData, sizeof(responseMessages[i].responseData));
+  }
+
+  String response;
+  serializeJson(doc, response);
+  server.send(200, "application/json", response);
 }
 
 void start_stop_program(void){
