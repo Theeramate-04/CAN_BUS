@@ -11,17 +11,23 @@ extern CanResponse responseMessages[30];
 extern CanResponseCheck responseCheck;
 static int periodicCount = 0;
 static int responseCount = 0;
-static int Mode = 0; 
+static int Mode = 3; 
+static int enable = 3;
 
 void getMode(void) {
-  String response = "{\"mode\":" + String(Mode) + "}";
-  server.send(200, "application/json", response);
+  if (Mode == 0 || Mode == 1){
+    String response = "{\"mode\":" + String(Mode) + "}";
+    server.send(200, "application/json", response);
+  }
+  else{
+    server.send(200, "application/json", "{\"error\":\"Missing mode_num parameter\"}");
+  }
 }
 
 void setMode(void) {
   if (server.hasArg("mode_num")) {
     Mode = server.arg("mode_num").toInt();
-    server.send(200, "application/json", "{\"success\":true}");
+    server.send(200, "application/json", "{\"Set mode\":\"ok\"}");
   } else {
     server.send(400, "application/json", "{\"error\":\"Missing mode_num parameter\"}");
   }
@@ -34,14 +40,12 @@ void hexStringToBytes(String hexString, uint8_t *byteArray) {
 }
 
 void set_periodic_cfg(void) {
-  String body = server.arg("plain");
-  JsonDocument doc;
-  deserializeJson(doc, body);
+    String body = server.arg("config");
+    JsonDocument doc;
+    deserializeJson(doc, body);
 
-  if (doc.containsKey("mode")) {
-    Mode = doc["mode"];
-    if (Mode == 1) {
-        Serial.println("Mode 1 in process");
+    if (Mode == 0 && enable == 1) {
+        Serial.println("Periodic mode in process");
         periodicCount = doc["messages"].size();
         for (int i = 0; i < periodicCount; i++) {
           periodicMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
@@ -51,78 +55,55 @@ void set_periodic_cfg(void) {
           periodicMessages[i].lastSent = 0;
         }
     }
-  }
-  server.send(200, "application/json", "{\"Mode 1\":\"ok\"}");
+  
+  server.send(200, "application/json", "{\"Periodic Mode \":\"ok\"}");
 }
 
 void set_req_res_cfg(void) {
-  String body = server.arg("plain");
-  JsonDocument doc;
-  deserializeJson(doc, body);
+    String body = server.arg("config");
+    JsonDocument doc;
+    deserializeJson(doc, body);
 
-  if (doc.containsKey("mode")) {
-    Mode = doc["mode"];
-    if (Mode == 2) {
-        Serial.println("Mode 2 in process");
-        responseCount = doc["responses"].size();
+    if (Mode == 1 && enable == 1) {
+        Serial.println("Request-Response mode in process");
+        responseCount = doc["messages"].size();
         for (int i = 0; i < responseCount; i++) {
-          responseMessages[i].id = strtoul(doc["responses"][i]["id"], NULL, 16);
-          String dataStr = doc["responses"][i]["data"];
+          responseMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
+          String dataStr = doc["messages"][i]["data"];
           Serial.println(dataStr);
           hexStringToBytes(dataStr, responseMessages[i].data);
-          responseMessages[i].responseId = strtoul(doc["responses"][i]["responseId"], NULL, 16);
-          String responseDataStr = doc["responses"][i]["responseData"];
+          responseMessages[i].responseId = strtoul(doc["messages"][i]["responseId"], NULL, 16);
+          String responseDataStr = doc["messages"][i]["responseData"];
           hexStringToBytes(responseDataStr, responseMessages[i].responseData);
         }
     }
-  }
 
-  server.send(200, "application/json", "{\"Mode 2\":\"ok\"}");
+  server.send(200, "application/json", "{\"Request-Response Mode 2\":\"ok\"}");
 }
 
 void get_periodic_cfg(void) {
-  String body = server.arg("plain");
-  JsonDocument doc;
-  deserializeJson(doc, body);
-
-  if (doc.containsKey("mode")) {
-    Mode = doc["mode"];
-    if (Mode == 1) {
-        Serial.println("Mode 1 in process");
-        periodicCount = doc["messages"].size();
-        for (int i = 0; i < periodicCount; i++) {
-          periodicMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
-          String dataStr = doc["messages"][i]["data"];
-          hexStringToBytes(dataStr, periodicMessages[i].data);
-          periodicMessages[i].period = doc["messages"][i]["period"];
-          periodicMessages[i].lastSent = 0;
-        }
-    }
-  }
-  server.send(200, "application/json", "{\"Mode 1\":\"ok\"}");
+  //                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
 }
 
 void get_req_res_cfg(void) {
-  String body = server.arg("plain");
-  JsonDocument doc;
-  deserializeJson(doc, body);
+  //
+}
 
-  if (doc.containsKey("mode")) {
-    Mode = doc["mode"];
-    if (Mode == 2) {
-        Serial.println("Mode 2 in process");
-        responseCount = doc["responses"].size();
-        for (int i = 0; i < responseCount; i++) {
-          responseMessages[i].id = strtoul(doc["responses"][i]["id"], NULL, 16);
-          String dataStr = doc["responses"][i]["data"];
-          Serial.println(dataStr);
-          hexStringToBytes(dataStr, responseMessages[i].data);
-          responseMessages[i].responseId = strtoul(doc["responses"][i]["responseId"], NULL, 16);
-          String responseDataStr = doc["responses"][i]["responseData"];
-          hexStringToBytes(responseDataStr, responseMessages[i].responseData);
-        }
-    }
+void start_stop_program(void){
+  if (server.hasArg("enable")) {
+    Mode = server.arg("enable").toInt();
+    server.send(200, "application/json", "{\"Set enable\":\"ok\"}");
+  } else {
+    server.send(400, "application/json", "{\"error\":\"Missing enable parameter\"}");
   }
+}
 
-  server.send(200, "application/json", "{\"Mode 2\":\"ok\"}");
+void get_program_running(void){
+  if (enable == 0 || enable == 1){
+    String response = "{\"enable\":" + String(enable) + "}";
+    server.send(200, "application/json", response);
+  }
+  else{
+    server.send(200, "application/json", "{\"error\":\"Missing enable parameter\"}");
+  }
 }
