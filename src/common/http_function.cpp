@@ -2,6 +2,7 @@
 #include <ArduinoJson.h>
 #include <Arduino.h>
 
+#include "common/http_function.h"
 #include "cfg/can_struct.h"
 #include "cfg/host.h"
 
