@@ -3,37 +3,32 @@
 #include <Arduino.h>
 
 #include "common/http_function.h"
-#include "cfg/can_struct.h"
+#include "cfg/can_cfg.h"
 #include "cfg/host.h"
 
 extern WebServer server;
 extern CanMessage periodicMessages[30];
 extern CanResponse responseMessages[30];
-extern CanResponseCheck responseCheck;
-static int periodicCount = 0;
-static int responseCount = 0;
-static int Mode = 3; 
-static int enable = 3;
-
-void hexStringToBytes(String hexString, uint8_t *byteArray);
-String bytesToHexString(const uint8_t* byteArray, size_t length);
 
 void getMode(void) {
   if (Mode == 0 || Mode == 1){
     String response = "{\"mode\":" + String(Mode) + "}";
+    Serial.println(response);
     server.send(200, "application/json", response);
   }
   else{
-    server.send(200, "application/json", "{\"error\":\"Missing mode_num parameter\"}");
+    server.send(200, "application/json", "{\"error\":\"Error mode_num parameter\"}");
   }
 }
 
 void setMode(void) {
-  if (server.hasArg("mode_num")) {
-    Mode = server.arg("mode_num").toInt();
+  Mode = server.arg("mode_num").toInt();
+  Serial.println(Mode);
+  if (Mode == 0 || Mode == 1){
     server.send(200, "application/json", "{\"Set mode\":\"ok\"}");
-  } else {
-    server.send(400, "application/json", "{\"error\":\"Missing mode_num parameter\"}");
+  }
+  else{
+    server.send(200, "application/json", "{\"error\":\"Error mode_num parameter\"}");
   }
 }
 
@@ -71,7 +66,7 @@ void set_periodic_cfg(void) {
         }
     }
   
-  server.send(200, "application/json", "{\"Periodic Mode \":\"ok\"}");
+    server.send(200, "application/json", "{\"Periodic Mode \":\"ok\"}");
 }
 
 void set_req_res_cfg(void) {
@@ -93,7 +88,7 @@ void set_req_res_cfg(void) {
         }
     }
 
-  server.send(200, "application/json", "{\"Request-Response Mode 2\":\"ok\"}");
+    server.send(200, "application/json", "{\"Request-Response Mode 2\":\"ok\"}");
 }
 
 void get_periodic_cfg(void) {
@@ -101,7 +96,7 @@ void get_periodic_cfg(void) {
   JsonArray messages = doc["messages"].to<JsonArray>();
 
   for (int i = 0; i < periodicCount; i++) {
-      JsonObject message = messages.createNestedObject();
+      JsonObject message = messages.add<JsonObject>();
       message["id"] = String(periodicMessages[i].id, HEX);
       message["data"] = bytesToHexString(periodicMessages[i].data, sizeof(periodicMessages[i].data));
       message["period"] = periodicMessages[i].period;
@@ -117,7 +112,7 @@ void get_req_res_cfg(void) {
   JsonArray messages = doc["messages"].to<JsonArray>();
 
   for (int i = 0; i < responseCount; i++) {
-      JsonObject message = messages.createNestedObject();
+      JsonObject message = messages.add<JsonObject>();
       message["id"] = String(responseMessages[i].id, HEX);
       message["data"] = bytesToHexString(responseMessages[i].data, sizeof(responseMessages[i].data));
       message["responseId"] = String(responseMessages[i].responseId, HEX);
@@ -130,20 +125,23 @@ void get_req_res_cfg(void) {
 }
 
 void start_stop_program(void){
-  if (server.hasArg("enable")) {
-    Mode = server.arg("enable").toInt();
+  enable = server.arg("enable").toInt();
+  Serial.println(enable);
+  if (enable == 0 || enable == 1){
     server.send(200, "application/json", "{\"Set enable\":\"ok\"}");
-  } else {
-    server.send(400, "application/json", "{\"error\":\"Missing enable parameter\"}");
+  }
+  else{
+    server.send(200, "application/json", "{\"error\":\"Error enable parameter\"}");
   }
 }
 
 void get_program_running(void){
   if (enable == 0 || enable == 1){
     String response = "{\"enable\":" + String(enable) + "}";
+    Serial.println(response);
     server.send(200, "application/json", response);
   }
   else{
-    server.send(200, "application/json", "{\"error\":\"Missing enable parameter\"}");
+    server.send(200, "application/json", "{\"error\":\"Error enable parameter\"}");
   }
 }

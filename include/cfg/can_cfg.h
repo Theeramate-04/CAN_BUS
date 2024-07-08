@@ -1,5 +1,7 @@
-#ifndef CAN_STRUCT_H
-#define CAN_STRUCT_H
+#ifndef CAN_CFG_H
+#define CAN_CFG_H
+
+#include <Arduino.h>
 
 struct CanMessage {
   uint32_t id;
@@ -20,5 +22,9 @@ struct CanResponseCheck {
   uint8_t data[8];
 };
 
+static int periodicCount = 0;
+static int responseCount = 0;
+static int Mode = 3; 
+static int enable = 3;
 
 #endif 
