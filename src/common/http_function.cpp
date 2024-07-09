@@ -128,20 +128,22 @@ void get_periodic_cfg(void) {
 }
 
 void get_req_res_cfg(void) {
-  JsonDocument doc;
-  JsonArray messages = doc["messages"].to<JsonArray>();
+  if (Mode == 2) {
+    JsonDocument doc;
+    JsonArray messages = doc["messages"].to<JsonArray>();
 
-  for (int i = 0; i < responseCount; i++) {
-      JsonObject message = messages.add<JsonObject>();
-      message["id"] = String(responseMessages[i].id, HEX);
-      message["data"] = bytesToHexString(responseMessages[i].data, sizeof(responseMessages[i].data));
-      message["responseId"] = String(responseMessages[i].responseId, HEX);
-      message["responseData"] = bytesToHexString(responseMessages[i].responseData, sizeof(responseMessages[i].responseData));
+    for (int i = 0; i < responseCount; i++) {
+        JsonObject message = messages.add<JsonObject>();
+        message["id"] = String(responseMessages[i].id, HEX);
+        message["data"] = bytesToHexString(responseMessages[i].data, sizeof(responseMessages[i].data));
+        message["responseId"] = String(responseMessages[i].responseId, HEX);
+        message["responseData"] = bytesToHexString(responseMessages[i].responseData, sizeof(responseMessages[i].responseData));
+    }
+
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response);
   }
-
-  String response;
-  serializeJson(doc, response);
-  server.send(200, "application/json", response);
 }
 
 void start_stop_program(void){
