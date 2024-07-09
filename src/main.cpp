@@ -35,15 +35,15 @@ void setup() {
 
 void loop() {
   server.handleClient();
-  NVS_Read("Mode_S", &Mode_S);
-  switch (Mode_S) {
-    case 1:
-      mode1();
-      break;
-    case 2:
-      mode2();
-      break;
-    default:
-      break;
-  }
+  // NVS_Read("Mode_S", &Mode_S);
+  // switch (Mode_S) {
+  //   case 1:
+  //     mode1();
+  //     break;
+  //   case 2:
+  //     mode2();
+  //     break;
+  //   default:
+  //     break;
+  // }
 }

@@ -100,7 +100,7 @@ void set_req_res_cfg(void) {
     JsonDocument doc;
     deserializeJson(doc, body);
     Serial.println(body);
-    if (Mode_S == 2 ) {
+    if (Mode_S == 1 ) {
         Serial.println("Request-Response mode in process");
         int responseCount = doc["messages"].size();
         NVS_Write("response_S", responseCount);
@@ -125,7 +125,7 @@ void set_req_res_cfg(void) {
 void get_periodic_cfg(void) {
   NVS_Read("Mode_S", &Mode_S);
   NVS_Read("periodic_S", &periodic_S);
-  if (Mode_S == 1) {
+  if (Mode_S == 0) {
     JsonDocument doc;
     JsonArray messages = doc["messages"].to<JsonArray>();
     for (int i = 0; i < periodic_S; i++) {
@@ -150,7 +150,7 @@ void get_periodic_cfg(void) {
 void get_req_res_cfg(void) {
   NVS_Read("Mode_S", &Mode_S);
   NVS_Read("response_S", &response_S);
-  if (Mode_S == 2) {
+  if (Mode_S == 1) {
     JsonDocument doc;
     JsonArray messages = doc["messages"].to<JsonArray>();
 
