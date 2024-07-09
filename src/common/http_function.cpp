@@ -22,17 +22,22 @@ void getMode(void) {
 }
 
 void setMode(void) {
-  String body = server.arg("plain");
-  JsonDocument doc;
-  deserializeJson(doc, body);
+  if (enable == 1) {
+    String body = server.arg("plain");
+    JsonDocument doc;
+    deserializeJson(doc, body);
 
-  Mode = doc["mode_num"];
-  Serial.println(Mode);
-  if (Mode == 0 || Mode == 1){
-    server.send(200, "application/json", "{\"Set mode\":\"ok\"}");
+    Mode = doc["mode_num"];
+    Serial.println(Mode);
+    if (Mode == 0 || Mode == 1){
+      server.send(200, "application/json", "{\"Set mode\":\"ok\"}");
+    }
+    else{
+      server.send(200, "application/json", "{\"error\":\"Error mode_num parameter\"}");
+    }
   }
-  else{
-    server.send(200, "application/json", "{\"error\":\"Error mode_num parameter\"}");
+  else {
+    server.send(200, "application/json", "{\"error\":\"program doesn't work.\"}");
   }
 }
 
@@ -54,11 +59,12 @@ String bytesToHexString(const uint8_t* byteArray, size_t length) {
 }
 
 void set_periodic_cfg(void) {
+  if (enable == 1) {
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
     Serial.println(body);
-    if (Mode == 0 && enable == 1) {
+    if (Mode == 0) {
         Serial.println("Periodic mode in process");
         periodicCount = doc["messages"].size();
         for (int i = 0; i < periodicCount; i++) {
@@ -68,17 +74,21 @@ void set_periodic_cfg(void) {
           periodicMessages[i].period = doc["messages"][i]["period"];
           periodicMessages[i].lastSent = 0;
         }
+      server.send(200, "application/json", "{\"Periodic Mode \":\"ok\"}");
     }
-  
-    server.send(200, "application/json", "{\"Periodic Mode \":\"ok\"}");
+  }
+  else {
+    server.send(200, "application/json", "{\"error\":\"program doesn't work.\"}");
+  }
 }
 
 void set_req_res_cfg(void) {
+  if (enable == 1) {
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
     Serial.println(body);
-    if (Mode == 1 && enable == 1) {
+    if (Mode == 2 ) {
         Serial.println("Request-Response mode in process");
         responseCount = doc["messages"].size();
         for (int i = 0; i < responseCount; i++) {
@@ -90,25 +100,31 @@ void set_req_res_cfg(void) {
           String responseDataStr = doc["messages"][i]["responseData"];
           hexStringToBytes(responseDataStr, responseMessages[i].responseData);
         }
+        server.send(200, "application/json", "{\"Request-Response Mode 2\":\"ok\"}");
     }
-
-    server.send(200, "application/json", "{\"Request-Response Mode 2\":\"ok\"}");
+  }
+  else {
+    server.send(200, "application/json", "{\"error\":\"program doesn't work.\"}");
+  }
 }
 
 void get_periodic_cfg(void) {
-  JsonDocument doc;
-  JsonArray messages = doc["messages"].to<JsonArray>();
+  if (Mode == 1) {
+    JsonDocument doc;
+    JsonArray messages = doc["messages"].to<JsonArray>();
 
-  for (int i = 0; i < periodicCount; i++) {
-      JsonObject message = messages.add<JsonObject>();
-      message["id"] = String(periodicMessages[i].id, HEX);
-      message["data"] = bytesToHexString(periodicMessages[i].data, sizeof(periodicMessages[i].data));
-      message["period"] = periodicMessages[i].period;
+    for (int i = 0; i < periodicCount; i++) {
+        JsonObject message = messages.add<JsonObject>();
+        message["id"] = String(periodicMessages[i].id, HEX);
+        message["data"] = bytesToHexString(periodicMessages[i].data, sizeof(periodicMessages[i].data));
+        message["period"] = periodicMessages[i].period;
+    }
+
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response);  
   }
 
-  String response;
-  serializeJson(doc, response);
-  server.send(200, "application/json", response);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 }
 
 void get_req_res_cfg(void) {
