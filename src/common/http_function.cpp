@@ -1,8 +1,11 @@
 #include <WebServer.h>
 #include <ArduinoJson.h>
 #include <Arduino.h>
+#include <nvs_flash.h>
+#include <nvs.h>
 
 #include "common/http_function.h"
+#include "common/nvs_function.h"
 #include "cfg/can_cfg.h"
 #include "cfg/host.h"
 
@@ -11,8 +14,9 @@ extern CanMessage periodicMessages[30];
 extern CanResponse responseMessages[30];
 
 void getMode(void) {
-  if (Mode == 0 || Mode == 1){
-    String response = "{\"mode\":" + String(Mode) + "}";
+  NVS_Read("Mode_S", &Mode_S);
+  if (Mode_S == 0 || Mode_S == 1){
+    String response = "{\"mode\":" + String(Mode_S) + "}";
     Serial.println(response);
     server.send(200, "application/json", response);
   }
@@ -22,15 +26,17 @@ void getMode(void) {
 }
 
 void setMode(void) {
-  if (enable == 1) {
+  NVS_Read("Enable_S", &Enable_S);
+  if (Enable_S == 1) {
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
 
-    Mode = doc["mode_num"];
+    int Mode = doc["mode_num"];
     Serial.println(Mode);
     if (Mode == 0 || Mode == 1){
       server.send(200, "application/json", "{\"Set mode\":\"ok\"}");
+      NVS_Write("Mode_S", Mode);
     }
     else{
       server.send(200, "application/json", "{\"error\":\"Error mode_num parameter\"}");
@@ -59,20 +65,24 @@ String bytesToHexString(const uint8_t* byteArray, size_t length) {
 }
 
 void set_periodic_cfg(void) {
-  if (enable == 1) {
+  NVS_Read("Enable_S", &Enable_S);
+  NVS_Read("Mode_S", &Mode_S);
+  if (Enable_S == 1) {
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
     Serial.println(body);
-    if (Mode == 0) {
+    if (Mode_S == 0) {
         Serial.println("Periodic mode in process");
-        periodicCount = doc["messages"].size();
+        int periodicCount = doc["messages"].size();
+        NVS_Write("periodic_S", periodicCount);
         for (int i = 0; i < periodicCount; i++) {
           periodicMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
           String dataStr = doc["messages"][i]["data"];
           hexStringToBytes(dataStr, periodicMessages[i].data);
           periodicMessages[i].period = doc["messages"][i]["period"];
           periodicMessages[i].lastSent = 0;
+          NVS_Write_Struct("peri_struct", &periodicMessages[i], sizeof(CanMessage));
         }
       server.send(200, "application/json", "{\"Periodic Mode \":\"ok\"}");
     }
@@ -83,14 +93,17 @@ void set_periodic_cfg(void) {
 }
 
 void set_req_res_cfg(void) {
-  if (enable == 1) {
+  NVS_Read("Enable_S", &Enable_S);
+  NVS_Read("Mode_S", &Mode_S);
+  if (Enable_S == 1) {
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
     Serial.println(body);
-    if (Mode == 2 ) {
+    if (Mode_S == 2 ) {
         Serial.println("Request-Response mode in process");
-        responseCount = doc["messages"].size();
+        int responseCount = doc["messages"].size();
+        NVS_Write("response_S", responseCount);
         for (int i = 0; i < responseCount; i++) {
           responseMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
           String dataStr = doc["messages"][i]["data"];
@@ -99,6 +112,7 @@ void set_req_res_cfg(void) {
           responseMessages[i].responseId = strtoul(doc["messages"][i]["responseId"], NULL, 16);
           String responseDataStr = doc["messages"][i]["responseData"];
           hexStringToBytes(responseDataStr, responseMessages[i].responseData);
+          NVS_Write_Struct("res_struct", &responseMessages[i], sizeof(CanResponse));
         }
         server.send(200, "application/json", "{\"Request-Response Mode 2\":\"ok\"}");
     }
@@ -109,40 +123,53 @@ void set_req_res_cfg(void) {
 }
 
 void get_periodic_cfg(void) {
-  if (Mode == 1) {
+  NVS_Read("Mode_S", &Mode_S);
+  NVS_Read("periodic_S", &periodic_S);
+  if (Mode_S == 1) {
     JsonDocument doc;
     JsonArray messages = doc["messages"].to<JsonArray>();
-
-    for (int i = 0; i < periodicCount; i++) {
+    for (int i = 0; i < periodic_S; i++) {
+      if (NVS_Read_Struct("peri_struct", &periodicMessages[i], sizeof(CanMessage)) == ESP_OK) {
         JsonObject message = messages.add<JsonObject>();
         message["id"] = String(periodicMessages[i].id, HEX);
         message["data"] = bytesToHexString(periodicMessages[i].data, sizeof(periodicMessages[i].data));
         message["period"] = periodicMessages[i].period;
+      }
     }
 
     String response;
     serializeJson(doc, response);
     server.send(200, "application/json", response);  
   }
+  else {
+    server.send(200, "application/json", "{\"error\":\"don't have periodic config.\"}");
+  }
 
 }
 
 void get_req_res_cfg(void) {
-  if (Mode == 2) {
+  NVS_Read("Mode_S", &Mode_S);
+  NVS_Read("response_S", &response_S);
+  if (Mode_S == 2) {
     JsonDocument doc;
     JsonArray messages = doc["messages"].to<JsonArray>();
 
-    for (int i = 0; i < responseCount; i++) {
+    for (int i = 0; i < response_S; i++) {
+      if (NVS_Read_Struct("res_struct", &responseMessages[i], sizeof(CanResponse)) == ESP_OK) {
         JsonObject message = messages.add<JsonObject>();
         message["id"] = String(responseMessages[i].id, HEX);
         message["data"] = bytesToHexString(responseMessages[i].data, sizeof(responseMessages[i].data));
         message["responseId"] = String(responseMessages[i].responseId, HEX);
         message["responseData"] = bytesToHexString(responseMessages[i].responseData, sizeof(responseMessages[i].responseData));
+      }
     }
 
     String response;
     serializeJson(doc, response);
     server.send(200, "application/json", response);
+  }
+  else {
+    server.send(200, "application/json", "{\"error\":\"don't have request/response config.\"}");
   }
 }
 
@@ -151,9 +178,10 @@ void start_stop_program(void){
   JsonDocument doc;
   deserializeJson(doc, body);
 
-  enable = doc["enable"];
+  int enable = doc["enable"];
   Serial.println(enable);
   if (enable == 0 || enable == 1){
+    NVS_Write("Enable_S", enable);
     server.send(200, "application/json", "{\"Set enable\":\"ok\"}");
   }
   else{
@@ -162,8 +190,9 @@ void start_stop_program(void){
 }
 
 void get_program_running(void){
-  if (enable == 0 || enable == 1){
-    String response = "{\"enable\":" + String(enable) + "}";
+  NVS_Read("Enable_S", &Enable_S);
+  if (Enable_S == 0 || Enable_S == 1){
+    String response = "{\"enable\":" + String(Enable_S) + "}";
     Serial.println(response);
     server.send(200, "application/json", response);
   }

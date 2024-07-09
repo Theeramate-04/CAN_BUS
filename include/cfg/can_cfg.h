@@ -22,9 +22,9 @@ struct CanResponseCheck {
   uint8_t data[8];
 };
 
-static int periodicCount = 0;
-static int responseCount = 0;
-static int Mode = 3; 
-static int enable = 3;
+static int Mode_S = 3;
+static int Enable_S = 3;
+static int periodic_S = 0;
+static int response_S = 0;
 
 #endif 

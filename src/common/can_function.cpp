@@ -4,11 +4,14 @@
 #include <CAN.h>
 #include <Arduino.h>
 #include <esp_intr_alloc.h>
+#include <nvs_flash.h>
+#include <nvs.h>
 
 #include "cfg/can_cfg.h"
 #include "cfg/host.h"
 #include "common/can_function.h"
 #include "common/http_function.h"
+#include "common/nvs_function.h"
 
 #define TX_GPIO_NUM   27
 #define RX_GPIO_NUM   26
@@ -30,8 +33,10 @@ void setupAP(void){
 }
 
 void mode1(void){
-  if(enable == 1){
-    for (int i = 0; i < periodicCount; i++) {
+  NVS_Read("Enable_S", &Enable_S);
+  NVS_Read("periodic_S", &periodic_S);
+  if(Enable_S == 1){
+    for (int i = 0; i < periodic_S; i++) {
         if (now - periodicMessages[i].lastSent >= periodicMessages[i].period) {
           CAN.beginExtendedPacket(periodicMessages[i].id);
           CAN.write(periodicMessages[i].data, 8);
@@ -43,10 +48,12 @@ void mode1(void){
 }
 
 void mode2(void){
-  if(enable == 1){
+  NVS_Read("Enable_S", &Enable_S);
+  NVS_Read("response_S", &response_S);
+  if(Enable_S == 1){
     responseCheck.id = strtoul("0x0C20A0A6", NULL, 16);
     hexStringToBytes("1234000000000000", responseCheck.data);
-    for (int i = 0; i < responseCount; i++) {
+    for (int i = 0; i < response_S; i++) {
         if (responseMessages[i].id == responseCheck.id && memcmp(responseMessages[i].data, responseCheck.data, 8) == 0) {
           CAN.beginExtendedPacket(responseMessages[i].responseId);
           CAN.write(responseMessages[i].responseData, 8);

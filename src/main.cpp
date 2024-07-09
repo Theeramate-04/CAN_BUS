@@ -20,6 +20,7 @@ CanResponseCheck responseCheck;
 
 void setup() {
   Serial.begin(115200);
+  init_nvs();
   setupAP();
   server.on("/enable", HTTP_GET, get_program_running);
   server.on("/enable", HTTP_POST, start_stop_program);
@@ -34,7 +35,8 @@ void setup() {
 
 void loop() {
   server.handleClient();
-  switch (Mode) {
+  NVS_Read("Mode_S", &Mode_S);
+  switch (Mode_S) {
     case 1:
       mode1();
       break;
