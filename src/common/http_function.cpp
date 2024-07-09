@@ -13,6 +13,8 @@ extern WebServer server;
 extern CanMessage periodicMessages[30];
 extern CanResponse responseMessages[30];
 
+static char key[20]; 
+
 void getMode(void) {
   NVS_Read("Mode_S", &Mode_S);
   if (Mode_S == 0 || Mode_S == 1){
@@ -82,7 +84,8 @@ void set_periodic_cfg(void) {
           hexStringToBytes(dataStr, periodicMessages[i].data);
           periodicMessages[i].period = doc["messages"][i]["period"];
           periodicMessages[i].lastSent = 0;
-          NVS_Write_Struct("peri_struct", &periodicMessages[i], sizeof(CanMessage));
+          sprintf(key, "peri_struct%d", i + 1);
+          NVS_Write_Struct(key, &periodicMessages[i], sizeof(CanMessage));
         }
       server.send(200, "application/json", "{\"Periodic Mode \":\"ok\"}");
     }
@@ -112,7 +115,8 @@ void set_req_res_cfg(void) {
           responseMessages[i].responseId = strtoul(doc["messages"][i]["responseId"], NULL, 16);
           String responseDataStr = doc["messages"][i]["responseData"];
           hexStringToBytes(responseDataStr, responseMessages[i].responseData);
-          NVS_Write_Struct("res_struct", &responseMessages[i], sizeof(CanResponse));
+          sprintf(key, "res_struct%d", i + 1);
+          NVS_Write_Struct(key, &responseMessages[i], sizeof(CanResponse));
         }
         server.send(200, "application/json", "{\"Request-Response Mode 2\":\"ok\"}");
     }
@@ -129,14 +133,14 @@ void get_periodic_cfg(void) {
     JsonDocument doc;
     JsonArray messages = doc["messages"].to<JsonArray>();
     for (int i = 0; i < periodic_S; i++) {
-      if (NVS_Read_Struct("peri_struct", &periodicMessages[i], sizeof(CanMessage)) == ESP_OK) {
+      sprintf(key, "peri_struct%d", i + 1);
+      if (NVS_Read_Struct(key, &periodicMessages[i], sizeof(CanMessage)) == ESP_OK) {
         JsonObject message = messages.add<JsonObject>();
         message["id"] = String(periodicMessages[i].id, HEX);
         message["data"] = bytesToHexString(periodicMessages[i].data, sizeof(periodicMessages[i].data));
         message["period"] = periodicMessages[i].period;
       }
     }
-
     String response;
     serializeJson(doc, response);
     server.send(200, "application/json", response);  
@@ -153,9 +157,9 @@ void get_req_res_cfg(void) {
   if (Mode_S == 1) {
     JsonDocument doc;
     JsonArray messages = doc["messages"].to<JsonArray>();
-
     for (int i = 0; i < response_S; i++) {
-      if (NVS_Read_Struct("res_struct", &responseMessages[i], sizeof(CanResponse)) == ESP_OK) {
+      sprintf(key, "res_struct%d", i + 1);
+      if (NVS_Read_Struct(key, &responseMessages[i], sizeof(CanResponse)) == ESP_OK) {
         JsonObject message = messages.add<JsonObject>();
         message["id"] = String(responseMessages[i].id, HEX);
         message["data"] = bytesToHexString(responseMessages[i].data, sizeof(responseMessages[i].data));

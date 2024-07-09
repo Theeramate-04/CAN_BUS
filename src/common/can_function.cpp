@@ -20,6 +20,7 @@ static uint32_t now = millis();
 extern CanMessage periodicMessages[30];
 extern CanResponse responseMessages[30];
 extern CanResponseCheck responseCheck;
+extern char key[20]; 
 
 void setupAP(void){
     WiFi.softAP(ssid, password);
@@ -37,6 +38,8 @@ void mode1(void){
   NVS_Read("periodic_S", &periodic_S);
   if(Enable_S == 1){
     for (int i = 0; i < periodic_S; i++) {
+      sprintf(key, "peri_struct%d", i + 1);
+      if (NVS_Read_Struct(key, &periodicMessages[i], sizeof(CanMessage)) == ESP_OK) {
         if (now - periodicMessages[i].lastSent >= periodicMessages[i].period) {
           CAN.beginExtendedPacket(periodicMessages[i].id);
           CAN.write(periodicMessages[i].data, 8);
@@ -44,6 +47,7 @@ void mode1(void){
           periodicMessages[i].lastSent = now;
         }
       }
+    }
   }
 }
 
@@ -54,11 +58,14 @@ void mode2(void){
     responseCheck.id = strtoul("0x0C20A0A6", NULL, 16);
     hexStringToBytes("1234000000000000", responseCheck.data);
     for (int i = 0; i < response_S; i++) {
+      sprintf(key, "res_struct%d", i + 1);
+      if (NVS_Read_Struct(key, &responseMessages[i], sizeof(CanResponse)) == ESP_OK) {
         if (responseMessages[i].id == responseCheck.id && memcmp(responseMessages[i].data, responseCheck.data, 8) == 0) {
           CAN.beginExtendedPacket(responseMessages[i].responseId);
           CAN.write(responseMessages[i].responseData, 8);
           CAN.endPacket();
         }
+      }
     }
   }
 }
