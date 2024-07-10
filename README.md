@@ -16,7 +16,7 @@ CAN Dummy Program เป็นโปรเจคที่ใช้สำหร�
 
 ##  แผนภาพการทำงาน
 **การทำงานโดยรวมของระบบ**
-
+![esp32_can_dummy_device-SEQ drawio](https://github.com/Theeramate-04/CAN_BUS/assets/52948227/e2b5e54e-3231-41e2-9186-20b756f2a69e)
 
 **การทำงานในส่วน CAN Protocol**
 ![esp32_can_dummy_device-TSK_CAN_STATE drawio](https://github.com/Theeramate-04/CAN_BUS/assets/52948227/ce3d9547-f4f1-4fb5-b064-617b58e67c23)
