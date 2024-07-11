@@ -30,6 +30,11 @@ struct CanResponseCheck {
   uint8_t data[8];
 };
 
+enum ModeEvent {
+  PERIOD_MODE,
+  REQ_RES_MODE
+};
+
 static int mode_s = 3;
 static int enable_s = 3;
 static int bit_s = 0;
