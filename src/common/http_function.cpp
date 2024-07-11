@@ -5,6 +5,7 @@
 #include <nvs.h>
 #include <vector>
 #include <algorithm> 
+#include <string>
 
 #include "common/http_function.h"
 #include "common/nvs_function.h"
@@ -82,8 +83,9 @@ void set_periodic_cfg(void) {
         NVS_Write("periodic_s", periodicCount);
         for (int i = 0; i < periodicCount; i++) {
           periodicMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
-          String dataStr = doc["messages"][i]["data"];
-          hexStringToBytes(dataStr, periodicMessages[i].data);
+          std::string dataStr = doc["messages"][i]["data"];
+          dataStr = dataStr.substr(2);
+          hexStringToBytes(dataStr.c_str(), periodicMessages[i].data);
           periodicMessages[i].period = doc["messages"][i]["period"];
           periodicMessages[i].lastSent = 0;
           sprintf(key, "peri_struct%d", i + 1);
@@ -110,12 +112,13 @@ void set_req_res_cfg(void) {
         NVS_Write("response_s", responseCount);
         for (int i = 0; i < responseCount; i++) {
           responseMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
-          String dataStr = doc["messages"][i]["data"];
-          Serial.println(dataStr);
-          hexStringToBytes(dataStr, responseMessages[i].data);
+          std::string dataStr = doc["messages"][i]["data"];
+          dataStr = dataStr.substr(2);
+          hexStringToBytes(dataStr.c_str(), responseMessages[i].data);
           responseMessages[i].responseId = strtoul(doc["messages"][i]["responseId"], NULL, 16);
-          String responseDataStr = doc["messages"][i]["responseData"];
-          hexStringToBytes(responseDataStr, responseMessages[i].responseData);
+          std::string responseDataStr = doc["messages"][i]["responseData"];
+          responseDataStr = responseDataStr.substr(2);
+          hexStringToBytes(responseDataStr.c_str(), responseMessages[i].responseData);
           sprintf(key, "res_struct%d", i + 1);
           NVS_Write_Struct(key, &responseMessages[i], sizeof(CanResponse));
         }
