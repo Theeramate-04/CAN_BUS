@@ -32,7 +32,7 @@ CAN Dummy Program เป็นโปรเจคที่ใช้สำหร�
 ### ไลบรารีต้องติดตั้ง
 - WiFi.h
 - WebServer.h
-- ArduinoJson.h>
+- ArduinoJson.h
 - nvs_flash.h
 - nvs.h
 - CAN.h
