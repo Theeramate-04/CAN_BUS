@@ -13,5 +13,7 @@ void get_periodic_cfg(void);
 void get_req_res_cfg(void);
 void start_stop_program(void);
 void get_program_running(void);
+void get_bitrates(void);
+void set_bitrates(void);
 
 #endif 

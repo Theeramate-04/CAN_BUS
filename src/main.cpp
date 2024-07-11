@@ -14,6 +14,7 @@
 #include "common/can_function.h"
 
 WebServer server(80);
+setUp_cfg setup_cfg;
 CanMessage periodicMessages[30];
 CanResponse responseMessages[30];
 CanResponseCheck responseCheck;
@@ -33,6 +34,8 @@ void setup() {
   server.on("/period_cfg", HTTP_POST, set_periodic_cfg);
   server.on("/req_res_cfg", HTTP_GET, get_req_res_cfg);
   server.on("/req_res_cfg", HTTP_POST, set_req_res_cfg);
+  server.on("/bitrates_cfg", HTTP_GET, get_bitrates);
+  server.on("/bitrates_cfg", HTTP_POST, set_bitrates);
   server.begin();
 }
 

@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <nvs_flash.h>
 #include <nvs.h>
+#include <vector>
+#include <algorithm> 
 
 #include "common/http_function.h"
 #include "common/nvs_function.h"
@@ -10,15 +12,16 @@
 #include "cfg/host.h"
 
 extern WebServer server;
+extern setUp_cfg setup_cfg;
 extern CanMessage periodicMessages[30];
 extern CanResponse responseMessages[30];
 
 static char key[20]; 
 
 void get_mode(void) {
-  NVS_Read("Mode_S", &Mode_S);
-  if (Mode_S == 0 || Mode_S == 1){
-    String response = "{\"mode\":" + String(Mode_S) + "}";
+  NVS_Read("mode_s", &mode_s);
+  if (mode_s == 0 || mode_s == 1){
+    String response = "{\"mode\":" + String(mode_s) + "}";
     Serial.println(response);
     server.send(200, "application/json", response);
   }
@@ -28,8 +31,7 @@ void get_mode(void) {
 }
 
 void set_mode(void) {
-  NVS_Read("Enable_S", &Enable_S);
-  if (Enable_S == 1) {
+  if (setup_cfg.enable_cfg == 1) {
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
@@ -37,8 +39,9 @@ void set_mode(void) {
     int Mode = doc["mode_num"];
     Serial.println(Mode);
     if (Mode == 0 || Mode == 1){
+      setup_cfg.mode_cfg = Mode;
+      NVS_Write("mode_s", Mode);
       server.send(200, "application/json", "{\"Set mode\":\"ok\"}");
-      NVS_Write("Mode_S", Mode);
     }
     else{
       server.send(200, "application/json", "{\"error\":\"Error mode_num parameter\"}");
@@ -67,17 +70,16 @@ String bytesToHexString(const uint8_t* byteArray, size_t length) {
 }
 
 void set_periodic_cfg(void) {
-  NVS_Read("Enable_S", &Enable_S);
-  NVS_Read("Mode_S", &Mode_S);
-  if (Enable_S == 1) {
+  if (setup_cfg.enable_cfg == 1) {
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
     Serial.println(body);
-    if (Mode_S == 0) {
+    if (setup_cfg.mode_cfg == 0) {
         Serial.println("Periodic mode in process");
         int periodicCount = doc["messages"].size();
-        NVS_Write("periodic_S", periodicCount);
+        setup_cfg.periodic_cfg = periodicCount;
+        NVS_Write("periodic_s", periodicCount);
         for (int i = 0; i < periodicCount; i++) {
           periodicMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
           String dataStr = doc["messages"][i]["data"];
@@ -96,17 +98,16 @@ void set_periodic_cfg(void) {
 }
 
 void set_req_res_cfg(void) {
-  NVS_Read("Enable_S", &Enable_S);
-  NVS_Read("Mode_S", &Mode_S);
-  if (Enable_S == 1) {
+  if (setup_cfg.enable_cfg == 1) {
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
     Serial.println(body);
-    if (Mode_S == 1 ) {
+    if (setup_cfg.mode_cfg == 1 ) {
         Serial.println("Request-Response mode in process");
         int responseCount = doc["messages"].size();
-        NVS_Write("response_S", responseCount);
+        setup_cfg.response_cfg = responseCount;
+        NVS_Write("response_s", responseCount);
         for (int i = 0; i < responseCount; i++) {
           responseMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
           String dataStr = doc["messages"][i]["data"];
@@ -127,12 +128,12 @@ void set_req_res_cfg(void) {
 }
 
 void get_periodic_cfg(void) {
-  NVS_Read("Mode_S", &Mode_S);
-  NVS_Read("periodic_S", &periodic_S);
-  if (Mode_S == 0) {
+  NVS_Read("mode_s", &mode_s);
+  NVS_Read("periodic_s", &periodic_s);
+  if (mode_s == 0) {
     JsonDocument doc;
     JsonArray messages = doc["messages"].to<JsonArray>();
-    for (int i = 0; i < periodic_S; i++) {
+    for (int i = 0; i < periodic_s; i++) {
       sprintf(key, "peri_struct%d", i + 1);
       if (NVS_Read_Struct(key, &periodicMessages[i], sizeof(CanMessage)) == ESP_OK) {
         JsonObject message = messages.add<JsonObject>();
@@ -152,12 +153,12 @@ void get_periodic_cfg(void) {
 }
 
 void get_req_res_cfg(void) {
-  NVS_Read("Mode_S", &Mode_S);
-  NVS_Read("response_S", &response_S);
-  if (Mode_S == 1) {
+  NVS_Read("mode_S", &mode_s);
+  NVS_Read("response_s", &response_s);
+  if (mode_s == 1) {
     JsonDocument doc;
     JsonArray messages = doc["messages"].to<JsonArray>();
-    for (int i = 0; i < response_S; i++) {
+    for (int i = 0; i < response_s; i++) {
       sprintf(key, "res_struct%d", i + 1);
       if (NVS_Read_Struct(key, &responseMessages[i], sizeof(CanResponse)) == ESP_OK) {
         JsonObject message = messages.add<JsonObject>();
@@ -185,7 +186,8 @@ void start_stop_program(void){
   int enable = doc["enable"];
   Serial.println(enable);
   if (enable == 0 || enable == 1){
-    NVS_Write("Enable_S", enable);
+    setup_cfg.enable_cfg == enable;
+    NVS_Write("enable_s", enable);
     server.send(200, "application/json", "{\"Set enable\":\"ok\"}");
   }
   else{
@@ -194,13 +196,49 @@ void start_stop_program(void){
 }
 
 void get_program_running(void){
-  NVS_Read("Enable_S", &Enable_S);
-  if (Enable_S == 0 || Enable_S == 1){
-    String response = "{\"enable\":" + String(Enable_S) + "}";
+  NVS_Read("enable_s", &enable_s);
+  if (enable_s == 0 || enable_s == 1){
+    String response = "{\"enable\":" + String(enable_s) + "}";
     Serial.println(response);
     server.send(200, "application/json", response);
   }
   else{
     server.send(200, "application/json", "{\"error\":\"Error enable parameter\"}");
+  }
+}
+
+void get_bitrates(void) {
+  NVS_Read("bit_s", &bit_s);
+  if (bit_s != 0){
+    String response = "{\"bitrates\":" + String(bit_s/1000) + "}";
+    Serial.println(response);
+    server.send(200, "application/json", response);
+  }
+  else{
+    server.send(200, "application/json", "{\"error\":\"Error bitrates parameter\"}");
+  }
+}
+
+void set_bitrates(void) {
+  if (setup_cfg.enable_cfg == 1) {
+    String body = server.arg("plain");
+    JsonDocument doc;
+    deserializeJson(doc, body);
+
+    int Bit = doc["bitrates"];
+    Serial.println(Bit);
+    std::vector<int> vec = {10000, 20000, 40000, 50000, 80000, 100000, 125000, 200000, 250000, 500000, 1000000};
+    if (std::find(vec.begin(), vec.end(), Bit) != vec.end()){
+      double send_bit = Bit;
+      setup_cfg.bit_cfg = send_bit;
+      NVS_Write("bit_s", send_bit);
+      server.send(200, "application/json", "{\"Set bitrates\":\"ok\"}");
+    }
+    else{
+      server.send(200, "application/json", "{\"error\":\"Error bitrates parameter\"}");
+    }
+  }
+  else {
+    server.send(200, "application/json", "{\"error\":\"program doesn't work.\"}");
   }
 }

@@ -17,52 +17,42 @@
 #define RX_GPIO_NUM   26
 
 static uint32_t now = millis();
+extern setUp_cfg setup_cfg;
 extern CanMessage periodicMessages[30];
 extern CanResponse responseMessages[30];
-extern CanResponseCheck responseCheck;
-extern char key[20]; 
+extern CanResponseCheck responseCheck; 
 
 void setup_can(void){
     CAN.setPins (RX_GPIO_NUM, TX_GPIO_NUM);
-    if (!CAN.begin(500E3)) {
+    if (!CAN.begin(setup_cfg.bit_cfg)) {
         Serial.println("Starting CAN failed!");
         while (1);
     }
 }
 
 void mode1(void){
-  NVS_Read("Enable_S", &Enable_S);
-  NVS_Read("periodic_S", &periodic_S);
-  if(Enable_S == 1){
-    for (int i = 0; i < periodic_S; i++) {
-      sprintf(key, "peri_struct%d", i + 1);
-      if (NVS_Read_Struct(key, &periodicMessages[i], sizeof(CanMessage)) == ESP_OK) {
-        if (now - periodicMessages[i].lastSent >= periodicMessages[i].period) {
+  if(setup_cfg.enable_cfg == 1){
+    for (int i = 0; i < setup_cfg.periodic_cfg; i++) {
+       if (now - periodicMessages[i].lastSent >= periodicMessages[i].period) {
           CAN.beginExtendedPacket(periodicMessages[i].id);
           CAN.write(periodicMessages[i].data, 8);
           CAN.endPacket();
           periodicMessages[i].lastSent = now;
         }
-      }
     }
   }
 }
 
 void mode2(void){
-  NVS_Read("Enable_S", &Enable_S);
-  NVS_Read("response_S", &response_S);
-  if(Enable_S == 1){
+  if(setup_cfg.enable_cfg == 1){
     responseCheck.id = strtoul("0x0C20A0A6", NULL, 16);
     hexStringToBytes("1234000000000000", responseCheck.data);
-    for (int i = 0; i < response_S; i++) {
-      sprintf(key, "res_struct%d", i + 1);
-      if (NVS_Read_Struct(key, &responseMessages[i], sizeof(CanResponse)) == ESP_OK) {
-        if (responseMessages[i].id == responseCheck.id && memcmp(responseMessages[i].data, responseCheck.data, 8) == 0) {
+    for (int i = 0; i < setup_cfg.response_cfg; i++) {
+       if (responseMessages[i].id == responseCheck.id && memcmp(responseMessages[i].data, responseCheck.data, 8) == 0) {
           CAN.beginExtendedPacket(responseMessages[i].responseId);
           CAN.write(responseMessages[i].responseData, 8);
           CAN.endPacket();
         }
-      }
     }
   }
 }

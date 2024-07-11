@@ -3,6 +3,14 @@
 
 #include <Arduino.h>
 
+struct setUp_cfg {
+  int enable_cfg;
+  double bit_cfg;
+  int mode_cfg = 3;
+  int periodic_cfg;
+  int response_cfg;
+};
+
 struct CanMessage {
   uint32_t id;
   uint8_t data[8];
@@ -22,9 +30,10 @@ struct CanResponseCheck {
   uint8_t data[8];
 };
 
-static int Mode_S = 3;
-static int Enable_S = 3;
-static int periodic_S = 0;
-static int response_S = 0;
+static int mode_s = 3;
+static int enable_s = 3;
+static int bit_s = 0;
+static int periodic_s = 0;
+static int response_s = 0;
 
 #endif 
