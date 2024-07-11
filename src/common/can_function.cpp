@@ -24,6 +24,9 @@ extern CanResponseCheck responseCheck;
 
 void setup_can(void){
     CAN.setPins (RX_GPIO_NUM, TX_GPIO_NUM);
+    while (setup_cfg.bit_cfg == 0){
+      Serial.println("Please enter bitrates");
+    }
     if (!CAN.begin(setup_cfg.bit_cfg)) {
         Serial.println("Starting CAN failed!");
         while (1);
