@@ -22,10 +22,7 @@ extern CanResponse responseMessages[30];
 extern CanResponseCheck responseCheck;
 extern char key[20]; 
 
-void setupAP(void){
-    WiFi.softAP(ssid, password);
-    Serial.print("AP IP address: ");
-    Serial.println(WiFi.softAPIP());
+void setup_can(void){
     CAN.setPins (RX_GPIO_NUM, TX_GPIO_NUM);
     if (!CAN.begin(500E3)) {
         Serial.println("Starting CAN failed!");

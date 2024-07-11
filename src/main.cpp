@@ -20,12 +20,15 @@ CanResponseCheck responseCheck;
 
 void setup() {
   Serial.begin(115200);
+  WiFi.softAP(ssid, password);
+  Serial.print("AP IP address: ");
+  Serial.println(WiFi.softAPIP());
   init_nvs();
-  setupAP();
+  setup_can();
   server.on("/enable", HTTP_GET, get_program_running);
   server.on("/enable", HTTP_POST, start_stop_program);
-  server.on("/mode", HTTP_GET, getMode);
-  server.on("/mode", HTTP_POST, setMode);
+  server.on("/mode", HTTP_GET, get_mode);
+  server.on("/mode", HTTP_POST, set_mode);
   server.on("/period_cfg", HTTP_GET, get_periodic_cfg);
   server.on("/period_cfg", HTTP_POST, set_periodic_cfg);
   server.on("/req_res_cfg", HTTP_GET, get_req_res_cfg);

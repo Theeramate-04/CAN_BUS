@@ -15,7 +15,7 @@ extern CanResponse responseMessages[30];
 
 static char key[20]; 
 
-void getMode(void) {
+void get_mode(void) {
   NVS_Read("Mode_S", &Mode_S);
   if (Mode_S == 0 || Mode_S == 1){
     String response = "{\"mode\":" + String(Mode_S) + "}";
@@ -27,7 +27,7 @@ void getMode(void) {
   }
 }
 
-void setMode(void) {
+void set_mode(void) {
   NVS_Read("Enable_S", &Enable_S);
   if (Enable_S == 1) {
     String body = server.arg("plain");

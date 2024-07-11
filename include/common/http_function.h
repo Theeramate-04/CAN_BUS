@@ -5,8 +5,8 @@
 
 void hexStringToBytes(String hexString, uint8_t *byteArray);
 String bytesToHexString(const uint8_t* byteArray, size_t length);
-void getMode(void);
-void setMode(void);
+void get_mode(void);
+void set_mode(void);
 void set_periodic_cfg(void);
 void set_req_res_cfg(void);
 void get_periodic_cfg(void);
