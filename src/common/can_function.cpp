@@ -17,13 +17,14 @@
 #define RX_GPIO_NUM   26
 
 static uint32_t now = millis();
-extern setUp_cfg_new setup_cfg_new;
 extern CanMessage periodicMessages[30];
 extern CanResponse responseMessages[30];
 extern QueueHandle_t httpQueue;
 CanResponseCheck responseCheck;
+setUp_cfg_new setup_cfg_new;
 
 bool change_cfg = false;
+static String response;
 
 void onReceive(int packetSize) {
   Serial.print("Received ");
@@ -87,9 +88,9 @@ void setup_can_cfg(void){
         message["id"] = String(periodicMessages[i].id, HEX);
         message["data"] = bytesToHexString(periodicMessages[i].data, sizeof(periodicMessages[i].data));
         message["period"] = periodicMessages[i].period;
+        message["lastSent"] = periodicMessages[i].lastSent;
       }
     }
-    String response;
     serializeJson(doc, response);
   }
   else if (mode_s == 1) {
@@ -106,34 +107,59 @@ void setup_can_cfg(void){
         message["responseData"] = bytesToHexString(responseMessages[i].responseData, sizeof(responseMessages[i].responseData));
       }
     }
-    String response;
     serializeJson(doc, response);
   }
 }
 
 void mode1(void){
-  if(setup_cfg_new.enable_cfg == 1){
-    for (int i = 0; i < setup_cfg_new.periodic_cfg; i++) {
-       if (now - periodicMessages[i].lastSent >= periodicMessages[i].period) {
-          CAN.beginExtendedPacket(periodicMessages[i].id);
-          CAN.write(periodicMessages[i].data, 8);
-          CAN.endPacket();
-          periodicMessages[i].lastSent = now;
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, response);
+  if (setup_cfg_new.enable_cfg == 1) {
+        JsonArray messages = doc["messages"];
+        for (JsonObject message : messages) {
+            unsigned long id = strtoul(message["id"], NULL, 16);
+            const char* dataStr = message["data"];
+            unsigned long period = message["period"];
+            unsigned long lastSent = message["lastSent"];
+            uint8_t data[8];
+            for (int i = 0; i < 8; i++) {
+                sscanf(dataStr + 2 * i + 2, "%02hhx", &data[i]);
+            }
+            if (now - lastSent >= period) {
+                CAN.beginExtendedPacket(id);
+                CAN.write(data, 8);
+                CAN.endPacket();
+                message["lastSent"] = now; 
+            }
         }
     }
-  }
 }
 
 void mode2(void){
-  if(setup_cfg_new.enable_cfg == 1){
-    for (int i = 0; i < setup_cfg_new.response_cfg; i++) {
-       if (responseMessages[i].id == responseCheck.id && memcmp(responseMessages[i].data, responseCheck.data, 8) == 0) {
-          CAN.beginExtendedPacket(responseMessages[i].responseId);
-          CAN.write(responseMessages[i].responseData, 8);
-          CAN.endPacket();
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, response);
+  if (setup_cfg_new.enable_cfg == 1) {
+        JsonArray messages = doc["messages"];
+        for (JsonObject message : messages) {
+            unsigned long id = strtoul(message["id"], NULL, 16);
+            const char* dataStr = message["data"];
+            unsigned long responseId = strtoul(message["responseId"], NULL, 16);
+            const char* responseDataStr = message["responseData"];
+            uint8_t data[8];
+            for (int i = 0; i < 8; i++) {
+                sscanf(dataStr + 2 * i, "%02hhx", &data[i]);
+            }
+            uint8_t responseData[8];
+            for (int i = 0; i < 8; i++) {
+                sscanf(responseDataStr + 2 * i, "%02hhx", &responseData[i]);
+            }
+            if (responseCheck.id == id && memcmp(responseCheck.data, data, 8) == 0) {
+                CAN.beginExtendedPacket(responseId);
+                CAN.write(responseData, 8);
+                CAN.endPacket();
+            }
         }
     }
-  }
 }
 
 void can_entry(void *pvParameters){
@@ -152,7 +178,7 @@ void can_entry(void *pvParameters){
       default:
         break;
     }
-    rc = xQueueReceive(httpQueue, &in_msg, 1000);
+    rc = xQueueReceive(httpQueue, &in_msg, 100);
     if (rc == pdPASS) {
       change_cfg = true;
       Serial.println("Receive new config");

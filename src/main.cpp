@@ -25,7 +25,7 @@ void setup() {
 
   httpQueue = xQueueCreate(10, sizeof(Queue_msg));
   xTaskCreate(http_entry, "HTTP_SERVICE", 2000, NULL, 1, NULL);
-  xTaskCreate(can_entry, "CAN_SERVICE", 2000, NULL, 1, NULL);
+  xTaskCreate(can_entry, "CAN_SERVICE", 3000, NULL, 1, NULL);
 
 }
 

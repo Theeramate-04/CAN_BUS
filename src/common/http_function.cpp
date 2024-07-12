@@ -72,7 +72,6 @@ String bytesToHexString(const uint8_t* byteArray, size_t length) {
 
 void set_periodic_cfg(void) {
   if (setup_cfg.enable_cfg == 1 && setup_cfg.mode_cfg == 0) {
-    out_msg.mode_evt = ModeEvent::PERIOD_MODE;
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
@@ -100,7 +99,6 @@ void set_periodic_cfg(void) {
 
 void set_req_res_cfg(void) {
   if (setup_cfg.enable_cfg == 1 && setup_cfg.mode_cfg == 1 ) {
-    out_msg.mode_evt = ModeEvent::REQ_RES_MODE;
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
@@ -235,7 +233,7 @@ void set_bitrates(void) {
       setup_cfg.bit_cfg = bit_s;
       server.send(200, "application/json", "{\"Set bitrates\":\"ok\"}");
       out_msg.check_change = true;
-      rc = xQueueSend(httpQueue, &out_msg, 1000);
+      rc = xQueueSend(httpQueue, &out_msg, 100);
       if (rc == pdTRUE) {
         Serial.println("TSK_HTTP:Report data OK");
       }
