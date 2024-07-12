@@ -4,7 +4,15 @@
 #include <Arduino.h>
 
 struct setUp_cfg {
-  int enable_cfg;
+  int enable_cfg =3;
+  double bit_cfg;
+  int mode_cfg = 3;
+  int periodic_cfg;
+  int response_cfg;
+};
+
+struct setUp_cfg_new {
+  int enable_cfg =3;
   double bit_cfg;
   int mode_cfg = 3;
   int periodic_cfg;
@@ -37,7 +45,7 @@ enum ModeEvent {
 
 struct Queue_msg {
   ModeEvent mode_evt;
-  bool enable_change = false;
+  bool check_change = false;
 };
 
 static int mode_s = 3;

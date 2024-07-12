@@ -3,9 +3,6 @@
 #include <Arduino.h>
 #include <nvs_flash.h>
 #include <nvs.h>
-#include <vector>
-#include <algorithm> 
-#include <string>
 
 #include "common/http_function.h"
 #include "common/nvs_function.h"
@@ -237,7 +234,7 @@ void set_bitrates(void) {
       NVS_Write("bit_s", send_bit);
       setup_cfg.bit_cfg = bit_s;
       server.send(200, "application/json", "{\"Set bitrates\":\"ok\"}");
-      out_msg.enable_change = true;
+      out_msg.check_change = true;
       rc = xQueueSend(httpQueue, &out_msg, 1000);
       if (rc == pdTRUE) {
         Serial.println("TSK_HTTP:Report data OK");
@@ -245,7 +242,7 @@ void set_bitrates(void) {
       else {
         Serial.printf("TSK_HTTP:Report data FAIL %d\r\n", rc);
       }
-      out_msg.enable_change = false;
+      out_msg.check_change = false;
 
     }
     else{
