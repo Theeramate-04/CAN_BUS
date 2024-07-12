@@ -14,10 +14,7 @@
 #include "common/can_function.h"
 
 WebServer server(80);
-setUp_cfg setup_cfg;
-CanMessage periodicMessages[30];
-CanResponse responseMessages[30];
-CanResponseCheck responseCheck;
+QueueHandle_t httpQueue;
 
 void setup() {
   Serial.begin(115200);
@@ -25,31 +22,11 @@ void setup() {
   Serial.print("AP IP address: ");
   Serial.println(WiFi.softAPIP());
   init_nvs();
-  setup_can();
-  server.on("/enable", HTTP_GET, get_program_running);
-  server.on("/enable", HTTP_POST, start_stop_program);
-  server.on("/mode", HTTP_GET, get_mode);
-  server.on("/mode", HTTP_POST, set_mode);
-  server.on("/period_cfg", HTTP_GET, get_periodic_cfg);
-  server.on("/period_cfg", HTTP_POST, set_periodic_cfg);
-  server.on("/req_res_cfg", HTTP_GET, get_req_res_cfg);
-  server.on("/req_res_cfg", HTTP_POST, set_req_res_cfg);
-  server.on("/bitrates_cfg", HTTP_GET, get_bitrates);
-  server.on("/bitrates_cfg", HTTP_POST, set_bitrates);
-  server.begin();
+
+  httpQueue = xQueueCreate(10, sizeof(Queue_msg));
+  xTaskCreate(http_entry, "HTTP_SERVICE", 2000, NULL, 1, NULL);
+  xTaskCreate(can_entry, "CAN_SERVICE", 2000, NULL, 1, NULL);
+
 }
 
-void loop() {
-  server.handleClient();
-  // NVS_Read("Mode_S", &Mode_S);
-  // switch (Mode_S) {
-  //   case 1:
-  //     mode1();
-  //     break;
-  //   case 2:
-  //     mode2();
-  //     break;
-  //   default:
-  //     break;
-  // }
-}
+void loop() {}

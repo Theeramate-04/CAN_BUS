@@ -35,6 +35,11 @@ enum ModeEvent {
   REQ_RES_MODE
 };
 
+struct Queue_msg {
+  ModeEvent mode_evt;
+  bool enable_change = false;
+};
+
 static int mode_s = 3;
 static int enable_s = 3;
 static int bit_s = 0;

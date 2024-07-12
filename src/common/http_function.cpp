@@ -13,11 +13,14 @@
 #include "cfg/host.h"
 
 extern WebServer server;
-extern setUp_cfg setup_cfg;
-extern CanMessage periodicMessages[30];
-extern CanResponse responseMessages[30];
+extern QueueHandle_t httpQueue;
+setUp_cfg setup_cfg;
+CanMessage periodicMessages[30];
+CanResponse responseMessages[30];
+Queue_msg out_msg;
 
 static char key[20]; 
+static int rc;
 
 void get_mode(void) {
   NVS_Read("mode_s", &mode_s);
@@ -40,8 +43,8 @@ void set_mode(void) {
     int Mode = doc["mode_num"];
     Serial.println(Mode);
     if (Mode == 0 || Mode == 1){
-      setup_cfg.mode_cfg = Mode;
       NVS_Write("mode_s", Mode);
+      setup_cfg.mode_cfg = mode_s;
       server.send(200, "application/json", "{\"Set mode\":\"ok\"}");
     }
     else{
@@ -71,28 +74,27 @@ String bytesToHexString(const uint8_t* byteArray, size_t length) {
 }
 
 void set_periodic_cfg(void) {
-  if (setup_cfg.enable_cfg == 1) {
+  if (setup_cfg.enable_cfg == 1 && setup_cfg.mode_cfg == 0) {
+    out_msg.mode_evt = ModeEvent::PERIOD_MODE;
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
     Serial.println(body);
-    if (setup_cfg.mode_cfg == 0) {
-        Serial.println("Periodic mode in process");
-        int periodicCount = doc["messages"].size();
-        setup_cfg.periodic_cfg = periodicCount;
-        NVS_Write("periodic_s", periodicCount);
-        for (int i = 0; i < periodicCount; i++) {
-          periodicMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
-          std::string dataStr = doc["messages"][i]["data"];
-          dataStr = dataStr.substr(2);
-          hexStringToBytes(dataStr.c_str(), periodicMessages[i].data);
-          periodicMessages[i].period = doc["messages"][i]["period"];
-          periodicMessages[i].lastSent = 0;
-          sprintf(key, "peri_struct%d", i + 1);
-          NVS_Write_Struct(key, &periodicMessages[i], sizeof(CanMessage));
-        }
-      server.send(200, "application/json", "{\"Periodic Mode \":\"ok\"}");
+    Serial.println("Periodic mode in process");
+    int periodicCount = doc["messages"].size();
+    setup_cfg.periodic_cfg = periodicCount;
+    NVS_Write("periodic_s", periodicCount);
+    for (int i = 0; i < periodicCount; i++) {
+      periodicMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
+      std::string dataStr = doc["messages"][i]["data"];
+      dataStr = dataStr.substr(2);
+      hexStringToBytes(dataStr.c_str(), periodicMessages[i].data);
+      periodicMessages[i].period = doc["messages"][i]["period"];
+      periodicMessages[i].lastSent = 0;
+      sprintf(key, "peri_struct%d", i + 1);
+      NVS_Write_Struct(key, &periodicMessages[i], sizeof(CanMessage));
     }
+    server.send(200, "application/json", "{\"Periodic Mode \":\"ok\"}");
   }
   else {
     server.send(200, "application/json", "{\"error\":\"program doesn't work.\"}");
@@ -100,30 +102,30 @@ void set_periodic_cfg(void) {
 }
 
 void set_req_res_cfg(void) {
-  if (setup_cfg.enable_cfg == 1) {
+  if (setup_cfg.enable_cfg == 1 && setup_cfg.mode_cfg == 1 ) {
+    out_msg.mode_evt = ModeEvent::REQ_RES_MODE;
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
     Serial.println(body);
-    if (setup_cfg.mode_cfg == 1 ) {
-        Serial.println("Request-Response mode in process");
-        int responseCount = doc["messages"].size();
-        setup_cfg.response_cfg = responseCount;
-        NVS_Write("response_s", responseCount);
-        for (int i = 0; i < responseCount; i++) {
-          responseMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
-          std::string dataStr = doc["messages"][i]["data"];
-          dataStr = dataStr.substr(2);
-          hexStringToBytes(dataStr.c_str(), responseMessages[i].data);
-          responseMessages[i].responseId = strtoul(doc["messages"][i]["responseId"], NULL, 16);
-          std::string responseDataStr = doc["messages"][i]["responseData"];
-          responseDataStr = responseDataStr.substr(2);
-          hexStringToBytes(responseDataStr.c_str(), responseMessages[i].responseData);
-          sprintf(key, "res_struct%d", i + 1);
-          NVS_Write_Struct(key, &responseMessages[i], sizeof(CanResponse));
-        }
-        server.send(200, "application/json", "{\"Request-Response Mode 2\":\"ok\"}");
+    Serial.println("Request-Response mode in process");
+    int responseCount = doc["messages"].size();
+    setup_cfg.response_cfg = responseCount;
+    NVS_Write("response_s", responseCount);
+    for (int i = 0; i < responseCount; i++) {
+      responseMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
+      std::string dataStr = doc["messages"][i]["data"];
+      dataStr = dataStr.substr(2);
+      hexStringToBytes(dataStr.c_str(), responseMessages[i].data);
+      responseMessages[i].responseId = strtoul(doc["messages"][i]["responseId"], NULL, 16);
+      std::string responseDataStr = doc["messages"][i]["responseData"];
+      responseDataStr = responseDataStr.substr(2);
+      hexStringToBytes(responseDataStr.c_str(), responseMessages[i].responseData);
+      sprintf(key, "res_struct%d", i + 1);
+      NVS_Write_Struct(key, &responseMessages[i], sizeof(CanResponse));
     }
+    server.send(200, "application/json", "{\"Request-Response Mode 2\":\"ok\"}");
+    
   }
   else {
     server.send(200, "application/json", "{\"error\":\"program doesn't work.\"}");
@@ -187,10 +189,9 @@ void start_stop_program(void){
   deserializeJson(doc, body);
 
   int enable = doc["enable"];
-  Serial.println(enable);
   if (enable == 0 || enable == 1){
-    setup_cfg.enable_cfg == enable;
     NVS_Write("enable_s", enable);
+    setup_cfg.enable_cfg = enable_s;
     server.send(200, "application/json", "{\"Set enable\":\"ok\"}");
   }
   else{
@@ -223,7 +224,7 @@ void get_bitrates(void) {
 }
 
 void set_bitrates(void) {
-  if (setup_cfg.enable_cfg == 1) {
+  if (setup_cfg.enable_cfg == 1 && (setup_cfg.periodic_cfg !=0 || setup_cfg.response_cfg !=0)) {
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
@@ -233,9 +234,19 @@ void set_bitrates(void) {
     std::vector<int> vec = {10000, 20000, 40000, 50000, 80000, 100000, 125000, 200000, 250000, 500000, 1000000};
     if (std::find(vec.begin(), vec.end(), Bit) != vec.end()){
       double send_bit = Bit;
-      setup_cfg.bit_cfg = send_bit;
       NVS_Write("bit_s", send_bit);
+      setup_cfg.bit_cfg = bit_s;
       server.send(200, "application/json", "{\"Set bitrates\":\"ok\"}");
+      out_msg.enable_change = true;
+      rc = xQueueSend(httpQueue, &out_msg, 1000);
+      if (rc == pdTRUE) {
+        Serial.println("TSK_HTTP:Report data OK");
+      }
+      else {
+        Serial.printf("TSK_HTTP:Report data FAIL %d\r\n", rc);
+      }
+      out_msg.enable_change = false;
+
     }
     else{
       server.send(200, "application/json", "{\"error\":\"Error bitrates parameter\"}");
@@ -244,4 +255,22 @@ void set_bitrates(void) {
   else {
     server.send(200, "application/json", "{\"error\":\"program doesn't work.\"}");
   }
+}
+
+void http_entry(void *pvParameters){
+  server.on("/enable", HTTP_GET, get_program_running);
+  server.on("/enable", HTTP_POST, start_stop_program);
+  server.on("/mode", HTTP_GET, get_mode);
+  server.on("/mode", HTTP_POST, set_mode);
+  server.on("/period_cfg", HTTP_GET, get_periodic_cfg);
+  server.on("/period_cfg", HTTP_POST, set_periodic_cfg);
+  server.on("/req_res_cfg", HTTP_GET, get_req_res_cfg);
+  server.on("/req_res_cfg", HTTP_POST, set_req_res_cfg);
+  server.on("/bitrates_cfg", HTTP_GET, get_bitrates);
+  server.on("/bitrates_cfg", HTTP_POST, set_bitrates);
+  server.begin();
+  while (1){
+    server.handleClient();
+  }
+  
 }

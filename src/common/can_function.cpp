@@ -20,7 +20,7 @@ static uint32_t now = millis();
 extern setUp_cfg setup_cfg;
 extern CanMessage periodicMessages[30];
 extern CanResponse responseMessages[30];
-extern CanResponseCheck responseCheck; 
+CanResponseCheck responseCheck;
 
 void onReceive(int packetSize) {
   Serial.print("Received ");
@@ -54,15 +54,12 @@ void onReceive(int packetSize) {
 }
 
 void setup_can(void){
-    CAN.setPins (RX_GPIO_NUM, TX_GPIO_NUM);
-    while (setup_cfg.bit_cfg == 0){
-      Serial.println("Please enter bitrates");
-    }
-    if (!CAN.begin(setup_cfg.bit_cfg)) {
-        Serial.println("Starting CAN failed!");
-        while (1);
-    }
-    CAN.onReceive(onReceive);
+  CAN.setPins (RX_GPIO_NUM, TX_GPIO_NUM);
+  if (!CAN.begin(setup_cfg.bit_cfg)) {
+    Serial.println("Starting CAN failed!");
+    while (1);
+  }
+  CAN.onReceive(onReceive);
 }
 
 void mode1(void){
@@ -90,4 +87,59 @@ void mode2(void){
   }
 }
 
+void can_entry(void *pvParameters){
+  // NVS_Read("mode_s", &mode_s);
+  // NVS_Read("periodic_s", &periodic_s);
+  // NVS_Read("enable_s", &enable_s);
+  // NVS_Read("bit_s", &bit_s);
+  // NVS_Read("response_s", &response_s);
+  // setup_cfg.mode_cfg = mode_s;
+  // setup_cfg.enable_cfg = enable_s;
+  // setup_cfg.bit_cfg = bit_s;
+  // char key[20];
+  // if (mode_s == 0) {
+  //   JsonDocument doc;
+  //   JsonArray messages = doc["messages"].to<JsonArray>();
+  //   for (int i = 0; i < periodic_s; i++) {
+  //     sprintf(key, "peri_struct%d", i + 1);
+  //     if (NVS_Read_Struct(key, &periodicMessages[i], sizeof(CanMessage)) == ESP_OK) {
+  //       JsonObject message = messages.add<JsonObject>();
+  //       message["id"] = String(periodicMessages[i].id, HEX);
+  //       message["data"] = bytesToHexString(periodicMessages[i].data, sizeof(periodicMessages[i].data));
+  //       message["period"] = periodicMessages[i].period;
+  //     }
+  //   }
+  //   String response;
+  //   serializeJson(doc, response);
+  // }
+  // else if (mode_s == 1) {
+  //   JsonDocument doc;
+  //   JsonArray messages = doc["messages"].to<JsonArray>();
+  //   for (int i = 0; i < response_s; i++) {
+  //     sprintf(key, "res_struct%d", i + 1);
+  //     if (NVS_Read_Struct(key, &responseMessages[i], sizeof(CanResponse)) == ESP_OK) {
+  //       JsonObject message = messages.add<JsonObject>();
+  //       message["id"] = String(responseMessages[i].id, HEX);
+  //       message["data"] = bytesToHexString(responseMessages[i].data, sizeof(responseMessages[i].data));
+  //       message["responseId"] = String(responseMessages[i].responseId, HEX);
+  //       message["responseData"] = bytesToHexString(responseMessages[i].responseData, sizeof(responseMessages[i].responseData));
+  //     }
+  //   }
+  //   String response;
+  //   serializeJson(doc, response);
+  // }
+  setup_can();
+
+  // Queue_msg in_msg;
+  // switch (in_msg.modeEvent) {
+  //   case PERIOD_MODE:
+  //     mode1();
+  //     break;
+  //   case REQ_RES_MODE:
+  //     mode2();
+  //     break;
+  //   default:
+  //     break;
+  // }
+}
 
