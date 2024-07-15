@@ -38,10 +38,9 @@ void set_mode(void) {
     deserializeJson(doc, body);
 
     int Mode = doc["mode_num"];
-    Serial.println(Mode);
     if (Mode == 0 || Mode == 1){
       NVS_Write("mode_s", Mode);
-      setup_cfg.mode_cfg = mode_s;
+      setup_cfg.mode_cfg = Mode;
       server.send(200, "application/json", "{\"Set mode\":\"ok\"}");
     }
     else{
@@ -186,7 +185,7 @@ void start_stop_program(void){
   int enable = doc["enable"];
   if (enable == 0 || enable == 1){
     NVS_Write("enable_s", enable);
-    setup_cfg.enable_cfg = enable_s;
+    setup_cfg.enable_cfg = enable;
     server.send(200, "application/json", "{\"Set enable\":\"ok\"}");
   }
   else{
@@ -206,10 +205,10 @@ void get_program_running(void){
   }
 }
 
-void get_bitrates(void) {
+void get_bitrate(void) {
   NVS_Read("bit_s", &bit_s);
   if (bit_s != 0){
-    String response = "{\"bitrates\":" + String(bit_s/1000) + "}";
+    String response = "{\"bitrate\":" + String(bit_s) + "}";
     Serial.println(response);
     server.send(200, "application/json", response);
   }
@@ -218,20 +217,20 @@ void get_bitrates(void) {
   }
 }
 
-void set_bitrates(void) {
-  if (setup_cfg.enable_cfg == 1 && (setup_cfg.periodic_cfg !=0 || setup_cfg.response_cfg !=0)) {
+void set_bitrate(void) {
+  if (setup_cfg.enable_cfg == 1) {
     String body = server.arg("plain");
     JsonDocument doc;
     deserializeJson(doc, body);
 
-    int Bit = doc["bitrates"];
+    int Bit = doc["bitrate"];
     Serial.println(Bit);
     std::vector<int> vec = {10000, 20000, 40000, 50000, 80000, 100000, 125000, 200000, 250000, 500000, 1000000};
     if (std::find(vec.begin(), vec.end(), Bit) != vec.end()){
       double send_bit = Bit;
       NVS_Write("bit_s", send_bit);
-      setup_cfg.bit_cfg = bit_s;
-      server.send(200, "application/json", "{\"Set bitrates\":\"ok\"}");
+      setup_cfg.bit_cfg = send_bit;
+      server.send(200, "application/json", "{\"Set bitrate\":\"ok\"}");
       out_msg.check_change = true;
       rc = xQueueSend(httpQueue, &out_msg, 100);
       if (rc == pdTRUE) {
@@ -261,11 +260,10 @@ void http_entry(void *pvParameters){
   server.on("/period_cfg", HTTP_POST, set_periodic_cfg);
   server.on("/req_res_cfg", HTTP_GET, get_req_res_cfg);
   server.on("/req_res_cfg", HTTP_POST, set_req_res_cfg);
-  server.on("/bitrates_cfg", HTTP_GET, get_bitrates);
-  server.on("/bitrates_cfg", HTTP_POST, set_bitrates);
+  server.on("/bitrate", HTTP_GET, get_bitrate);
+  server.on("/bitrate", HTTP_POST, set_bitrate);
   server.begin();
   while (1){
     server.handleClient();
   }
-  
 }

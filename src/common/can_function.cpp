@@ -16,45 +16,56 @@
 #define TX_GPIO_NUM   27
 #define RX_GPIO_NUM   26
 
-static uint32_t now = millis();
 extern CanMessage periodicMessages[30];
 extern CanResponse responseMessages[30];
 extern QueueHandle_t httpQueue;
+ModeEvent mode_evt;
 CanResponseCheck responseCheck;
 setUp_cfg_new setup_cfg_new;
 
 bool change_cfg = false;
 static String response;
+volatile bool messageReceived = false;
 
-void onReceive(int packetSize) {
-  Serial.print("Received ");
-  if (CAN.packetExtended()) {
-    Serial.print("extended ");
-  }
-  if (CAN.packetRtr()) {
-    Serial.print("RTR ");
-  }
-  Serial.print("packet with id 0x");
-  Serial.print(CAN.packetId(), HEX);
-  responseCheck.id = CAN.packetId();
-  if (CAN.packetRtr()) {
-    Serial.print(" and requested length ");
-    Serial.println(CAN.packetDlc());
-  } else {
-    Serial.print(" and length ");
-    Serial.println(packetSize);
-    
-    int index = 0;
-    while (CAN.available()) {
-      int value = CAN.read();
-      Serial.print((char)value);
-      if (index < sizeof(responseCheck.data)) {
-        responseCheck.data[index++] = (uint8_t)value;
+void on_receive(int packetSize) {
+  messageReceived = true;
+}
+
+void can_receive() {
+  if (messageReceived) {
+    messageReceived = false;
+    int packetSize = CAN.parsePacket();
+    Serial.print("Received ");
+    if (CAN.packetExtended()) {
+      Serial.print("extended ");
+    }
+    if (CAN.packetRtr()) {
+      Serial.print("RTR ");
+    }
+    Serial.print("packet with id 0x");
+    Serial.print(CAN.packetId(), HEX);
+    responseCheck.id = CAN.packetId();
+    if (CAN.packetRtr()) {
+      Serial.print(" and requested length ");
+      Serial.println(CAN.packetDlc());
+    } 
+    else {
+      Serial.print(" and length ");
+      Serial.println(packetSize);
+        
+      int index = 0;
+      memset(responseCheck.data, 0, sizeof(responseCheck.data)); 
+      while (CAN.available() && index < sizeof(responseCheck.data)) {
+        int value = CAN.read();
+        Serial.print((char)value);
+        if (index < sizeof(responseCheck.data)) {
+          responseCheck.data[index++] = (uint8_t)value;
+        }
       }
+      Serial.println();
     }
     Serial.println();
   }
-  Serial.println();
 }
 
 void setup_can(void){
@@ -63,22 +74,20 @@ void setup_can(void){
     Serial.println("Starting CAN failed!");
     while (1);
   }
-  CAN.onReceive(onReceive);
+  CAN.onReceive(on_receive);
 }
 
 void setup_can_cfg(void){
-  Queue_msg in_msg;
   NVS_Read("mode_s", &mode_s);
-  NVS_Read("periodic_s", &periodic_s);
   NVS_Read("enable_s", &enable_s);
   NVS_Read("bit_s", &bit_s);
-  NVS_Read("response_s", &response_s);
   setup_cfg_new.mode_cfg = mode_s;
   setup_cfg_new.enable_cfg = enable_s;
   setup_cfg_new.bit_cfg = bit_s;
   char key[20];
   if (mode_s == 0) {
-    in_msg.mode_evt = ModeEvent::PERIOD_MODE;
+    mode_evt = ModeEvent::PERIOD_MODE;
+    NVS_Read("periodic_s", &periodic_s);
     JsonDocument doc;
     JsonArray messages = doc["messages"].to<JsonArray>();
     for (int i = 0; i < periodic_s; i++) {
@@ -94,7 +103,8 @@ void setup_can_cfg(void){
     serializeJson(doc, response);
   }
   else if (mode_s == 1) {
-    in_msg.mode_evt = ModeEvent::REQ_RES_MODE;
+    mode_evt = ModeEvent::REQ_RES_MODE;
+    NVS_Read("response_s", &response_s);
     JsonDocument doc;
     JsonArray messages = doc["messages"].to<JsonArray>();
     for (int i = 0; i < response_s; i++) {
@@ -112,8 +122,14 @@ void setup_can_cfg(void){
 }
 
 void mode1(void){
+  uint32_t now = millis();
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, response);
+  if (error) {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.c_str());
+        return;
+  }
   if (setup_cfg_new.enable_cfg == 1) {
         JsonArray messages = doc["messages"];
         for (JsonObject message : messages) {
@@ -122,22 +138,27 @@ void mode1(void){
             unsigned long period = message["period"];
             unsigned long lastSent = message["lastSent"];
             uint8_t data[8];
-            for (int i = 0; i < 8; i++) {
-                sscanf(dataStr + 2 * i + 2, "%02hhx", &data[i]);
-            }
+            hexStringToBytes(dataStr, data);
             if (now - lastSent >= period) {
-                CAN.beginExtendedPacket(id);
-                CAN.write(data, 8);
-                CAN.endPacket();
-                message["lastSent"] = now; 
+              CAN.beginExtendedPacket(id);
+              CAN.write(data, 8);
+              CAN.endPacket();
+              message["lastSent"] = now; 
             }
         }
     }
+  serializeJson(doc, response);
 }
 
 void mode2(void){
+  can_receive();
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, response);
+  if (error) {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.c_str());
+        return;
+  }
   if (setup_cfg_new.enable_cfg == 1) {
         JsonArray messages = doc["messages"];
         for (JsonObject message : messages) {
@@ -146,13 +167,9 @@ void mode2(void){
             unsigned long responseId = strtoul(message["responseId"], NULL, 16);
             const char* responseDataStr = message["responseData"];
             uint8_t data[8];
-            for (int i = 0; i < 8; i++) {
-                sscanf(dataStr + 2 * i, "%02hhx", &data[i]);
-            }
+            hexStringToBytes(dataStr, data);
             uint8_t responseData[8];
-            for (int i = 0; i < 8; i++) {
-                sscanf(responseDataStr + 2 * i, "%02hhx", &responseData[i]);
-            }
+            hexStringToBytes(responseDataStr, responseData);
             if (responseCheck.id == id && memcmp(responseCheck.data, data, 8) == 0) {
                 CAN.beginExtendedPacket(responseId);
                 CAN.write(responseData, 8);
@@ -168,7 +185,7 @@ void can_entry(void *pvParameters){
   while (1){
     int rc;
     setup_can();
-    switch (in_msg.mode_evt) {
+    switch (mode_evt) {
       case PERIOD_MODE:
         mode1();
         break;
@@ -180,12 +197,13 @@ void can_entry(void *pvParameters){
     }
     rc = xQueueReceive(httpQueue, &in_msg, 100);
     if (rc == pdPASS) {
+      if(in_msg.check_change){
       change_cfg = true;
       Serial.println("Receive new config");
+      }
     }
     if(change_cfg){
       setup_can_cfg();
-      Serial.println("Receive new config");
       change_cfg = false;
     }
   }

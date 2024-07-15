@@ -44,7 +44,6 @@ enum ModeEvent {
 };
 
 struct Queue_msg {
-  ModeEvent mode_evt;
   bool check_change = false;
 };
 
