@@ -12,12 +12,13 @@
 extern WebServer server;
 extern QueueHandle_t httpQueue;
 setUp_cfg setup_cfg;
-CanMessage periodicMessages[30];
-CanResponse responseMessages[30];
-Queue_msg out_msg;
+http_periodic http_periodic_messages[30];
+http_response http_response_messages[30];
+queue_msg out_msg;
 
 static char key[20]; 
 static int rc;
+
 /**
 /*!
   @brief Gets the current mode (either 0 or 1) from NVS and sends it as a JSON response.
@@ -100,17 +101,17 @@ void set_periodic_cfg(void) {
     Serial.println(body);
     Serial.println("Periodic mode in process");
     int periodicCount = doc["messages"].size();
-    setup_cfg.periodic_cfg = periodicCount;
+    setup_cfg.periodic_count_cfg = periodicCount;
     NVS_Write("periodic_s", periodicCount);
     for (int i = 0; i < periodicCount; i++) {
-      periodicMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
+      http_periodic_messages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
       std::string dataStr = doc["messages"][i]["data"];
       dataStr = dataStr.substr(2);
-      hexStringToBytes(dataStr.c_str(), periodicMessages[i].data);
-      periodicMessages[i].period = doc["messages"][i]["period"];
-      periodicMessages[i].lastSent = 0;
+      hexStringToBytes(dataStr.c_str(), http_periodic_messages[i].data);
+      http_periodic_messages[i].period = doc["messages"][i]["period"];
+      http_periodic_messages[i].lastSent = 0;
       sprintf(key, "peri_struct%d", i + 1);
-      NVS_Write_Struct(key, &periodicMessages[i], sizeof(CanMessage));
+      NVS_Write_Struct(key, &http_periodic_messages[i], sizeof(http_periodic));
     }
     server.send(200, "application/json", "{\"Periodic Mode \":\"ok\"}");
   }
@@ -131,19 +132,19 @@ void set_req_res_cfg(void) {
     Serial.println(body);
     Serial.println("Request-Response mode in process");
     int responseCount = doc["messages"].size();
-    setup_cfg.response_cfg = responseCount;
+    setup_cfg.response_count_cfg = responseCount;
     NVS_Write("response_s", responseCount);
     for (int i = 0; i < responseCount; i++) {
-      responseMessages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
+      http_response_messages[i].id = strtoul(doc["messages"][i]["id"], NULL, 16);
       std::string dataStr = doc["messages"][i]["data"];
       dataStr = dataStr.substr(2);
-      hexStringToBytes(dataStr.c_str(), responseMessages[i].data);
-      responseMessages[i].responseId = strtoul(doc["messages"][i]["responseId"], NULL, 16);
+      hexStringToBytes(dataStr.c_str(), http_response_messages[i].data);
+      http_response_messages[i].responseId = strtoul(doc["messages"][i]["responseId"], NULL, 16);
       std::string responseDataStr = doc["messages"][i]["responseData"];
       responseDataStr = responseDataStr.substr(2);
-      hexStringToBytes(responseDataStr.c_str(), responseMessages[i].responseData);
+      hexStringToBytes(responseDataStr.c_str(), http_response_messages[i].responseData);
       sprintf(key, "res_struct%d", i + 1);
-      NVS_Write_Struct(key, &responseMessages[i], sizeof(CanResponse));
+      NVS_Write_Struct(key, &http_response_messages[i], sizeof(http_response));
     }
     server.send(200, "application/json", "{\"Request-Response Mode 2\":\"ok\"}");
     
@@ -165,11 +166,11 @@ void get_periodic_cfg(void) {
     JsonArray messages = doc["messages"].to<JsonArray>();
     for (int i = 0; i < periodic_s; i++) {
       sprintf(key, "peri_struct%d", i + 1);
-      if (NVS_Read_Struct(key, &periodicMessages[i], sizeof(CanMessage)) == ESP_OK) {
+      if (NVS_Read_Struct(key, &http_periodic_messages[i], sizeof(http_periodic)) == ESP_OK) {
         JsonObject message = messages.add<JsonObject>();
-        message["id"] = String(periodicMessages[i].id, HEX);
-        message["data"] = bytesToHexString(periodicMessages[i].data, sizeof(periodicMessages[i].data));
-        message["period"] = periodicMessages[i].period;
+        message["id"] = String(http_periodic_messages[i].id, HEX);
+        message["data"] = bytesToHexString(http_periodic_messages[i].data, sizeof(http_periodic_messages[i].data));
+        message["period"] = http_periodic_messages[i].period;
       }
     }
     String response;
@@ -194,12 +195,12 @@ void get_req_res_cfg(void) {
     JsonArray messages = doc["messages"].to<JsonArray>();
     for (int i = 0; i < response_s; i++) {
       sprintf(key, "res_struct%d", i + 1);
-      if (NVS_Read_Struct(key, &responseMessages[i], sizeof(CanResponse)) == ESP_OK) {
+      if (NVS_Read_Struct(key, &http_response_messages[i], sizeof(http_response)) == ESP_OK) {
         JsonObject message = messages.add<JsonObject>();
-        message["id"] = String(responseMessages[i].id, HEX);
-        message["data"] = bytesToHexString(responseMessages[i].data, sizeof(responseMessages[i].data));
-        message["responseId"] = String(responseMessages[i].responseId, HEX);
-        message["responseData"] = bytesToHexString(responseMessages[i].responseData, sizeof(responseMessages[i].responseData));
+        message["id"] = String(http_response_messages[i].id, HEX);
+        message["data"] = bytesToHexString(http_response_messages[i].data, sizeof(http_response_messages[i].data));
+        message["responseId"] = String(http_response_messages[i].responseId, HEX);
+        message["responseData"] = bytesToHexString(http_response_messages[i].responseData, sizeof(http_response_messages[i].responseData));
       }
     }
 

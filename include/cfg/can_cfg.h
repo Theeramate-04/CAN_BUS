@@ -7,43 +7,57 @@ struct setUp_cfg {
   int enable_cfg =3;
   double bit_cfg;
   int mode_cfg = 3;
-  int periodic_cfg;
-  int response_cfg;
+  int periodic_count_cfg;
+  int response_count_cfg;
 };
 
 struct setUp_cfg_new {
   int enable_cfg =3;
   double bit_cfg;
   int mode_cfg = 3;
-  int periodic_cfg;
-  int response_cfg;
+  int periodic_count_cfg;
+  int response_count_cfg;
 };
 
-struct CanMessage {
+struct http_periodic {
   uint32_t id;
   uint8_t data[8];
   uint32_t period;
   uint32_t lastSent;
 };
 
-struct CanResponse {
+struct http_response {
   uint32_t id;
   uint8_t data[8];
   uint32_t responseId;
   uint8_t responseData[8];
 };
 
-struct CanResponseCheck {
+struct can_periodic {
+  uint32_t id;
+  uint8_t data[8];
+  uint32_t period;
+  uint32_t lastSent;
+};
+
+struct can_response {
+  uint32_t id;
+  uint8_t data[8];
+  uint32_t responseId;
+  uint8_t responseData[8];
+};
+
+struct can_response_check {
   uint32_t id;
   uint8_t data[8];
 };
 
-enum ModeEvent {
+enum mode_event {
   PERIOD_MODE,
   REQ_RES_MODE
 };
 
-struct Queue_msg {
+struct queue_msg {
   bool check_change = false;
 };
 
