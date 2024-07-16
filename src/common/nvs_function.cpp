@@ -5,8 +5,12 @@
 
 #include "common/nvs_function.h"
 
+// Mutex for thread-safe NVS access
 SemaphoreHandle_t Mutex;
-
+/**
+/*!
+    @brief  Initialize the Non-Volatile Storage (NVS) system.
+*/
 void init_nvs(void) {
 	Mutex = xSemaphoreCreateMutex();
     esp_err_t ret = nvs_flash_init();
@@ -16,7 +20,13 @@ void init_nvs(void) {
     }
     ESP_ERROR_CHECK(ret);
 }
-
+/**
+/*!
+    @brief  Read a string value from NVS.
+    @param  data  The key for the value to be read.
+    @param  Get_Data  The buffer to store the read value.
+    @return esp_err_t  ESP_OK on success, or an error code on failure.
+*/
 esp_err_t NVS_Read(const char *data, const char *Get_Data){
 	if (xSemaphoreTake(Mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
 	    printf("\n");
@@ -54,7 +64,13 @@ esp_err_t NVS_Read(const char *data, const char *Get_Data){
 	}
 	return ESP_ERR_TIMEOUT;
 }
-
+/**
+/*!
+    @brief  Read an integer value from NVS.
+    @param  data  The key for the value to be read.
+    @param  Get_Data  The buffer to store the read value.
+    @return esp_err_t  ESP_OK on success, or an error code on failure.
+*/
 esp_err_t NVS_Read(const char *data, int *Get_Data){  
 	if (xSemaphoreTake(Mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
 	    printf("\n");
@@ -90,7 +106,14 @@ esp_err_t NVS_Read(const char *data, int *Get_Data){
 	}
 	return ESP_ERR_TIMEOUT;
 }
-
+/**
+/*!
+    @brief  Read a structured value from NVS.
+    @param  data  The key for the value to be read.
+    @param  Get_Data  The buffer to store the read value.
+    @param  size  The size of the buffer.
+    @return esp_err_t  ESP_OK on success, or an error code on failure.
+*/
 esp_err_t NVS_Read_Struct(const char *data, void *Get_Data, size_t size) {
 	if (xSemaphoreTake(Mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
 		printf("\n");
@@ -124,7 +147,12 @@ esp_err_t NVS_Read_Struct(const char *data, void *Get_Data, size_t size) {
 	}
 	return ESP_ERR_TIMEOUT;
 }
-
+/**
+/*!
+    @brief  Write a string value to NVS.
+    @param  data  The key for the value to be written.
+    @param  write_string  The string value to be written.
+*/
 void NVS_Write(const char *data,const char *write_string){
 	if (xSemaphoreTake(Mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
 	    printf("\n");
@@ -155,7 +183,12 @@ void NVS_Write(const char *data,const char *write_string){
 		xSemaphoreGive(Mutex);
 	}
 }
-
+/**
+/*!
+    @brief  Write an integer value to NVS.
+    @param  data  The key for the value to be written.
+    @param  write_int  The integer value to be written.
+*/
 void NVS_Write(const char *data,int write_int){
 	if (xSemaphoreTake(Mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
 	    printf("\n");
@@ -186,7 +219,13 @@ void NVS_Write(const char *data,int write_int){
 		xSemaphoreGive(Mutex);
 	}
 }
-
+/**
+/*!
+    @brief  Write a structured value to NVS.
+    @param  key  The key for the value to be written.
+    @param  data  The buffer containing the data to be written.
+    @param  size  The size of the data buffer.
+*/
 void NVS_Write_Struct(const char *key, const void *data, size_t size) {
 	if (xSemaphoreTake(Mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
 		printf("\n");

@@ -26,11 +26,17 @@ setUp_cfg_new setup_cfg_new;
 bool change_cfg = false;
 static String response;
 volatile bool messageReceived = false;
-
+/**
+/*!
+    @brief  Interrupt service routine to handle CAN message reception.
+*/
 void on_receive(int packetSize) {
   messageReceived = true;
 }
-
+/**
+/*!
+    @brief  Handles CAN message reception and processes received messages.
+*/
 void can_receive() {
   if (messageReceived) {
     messageReceived = false;
@@ -67,7 +73,10 @@ void can_receive() {
     Serial.println();
   }
 }
-
+/**
+/*!
+    @brief  Configures CAN settings such as pins and bitrate.
+*/
 void setup_can(void){
   CAN.setPins (RX_GPIO_NUM, TX_GPIO_NUM);
   if (!CAN.begin(setup_cfg_new.bit_cfg)) {
@@ -76,7 +85,10 @@ void setup_can(void){
   }
   CAN.onReceive(on_receive);
 }
-
+/**
+/*!
+    @brief  Sets up CAN configuration from NVS storage.
+*/
 void setup_can_cfg(void){
   NVS_Read("mode_s", &mode_s);
   NVS_Read("enable_s", &enable_s);
@@ -120,7 +132,10 @@ void setup_can_cfg(void){
     serializeJson(doc, response);
   }
 }
-
+/**
+/*!
+    @brief  Handles periodic mode CAN message transmission.
+*/
 void mode1(void){
   uint32_t now = millis();
   JsonDocument doc;
@@ -149,7 +164,10 @@ void mode1(void){
     }
   serializeJson(doc, response);
 }
-
+/**
+/*!
+    @brief  Handles request-response mode CAN message transmission.
+*/
 void mode2(void){
   can_receive();
   JsonDocument doc;
@@ -178,7 +196,10 @@ void mode2(void){
         }
     }
 }
-
+/**
+/*!
+    @brief  Main CAN task that handles configuration and mode switching.
+*/
 void can_entry(void *pvParameters){
   Queue_msg in_msg;
   setup_can_cfg();

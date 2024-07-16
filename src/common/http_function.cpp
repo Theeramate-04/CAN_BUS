@@ -18,7 +18,11 @@ Queue_msg out_msg;
 
 static char key[20]; 
 static int rc;
-
+/**
+/*!
+  @brief Gets the current mode (either 0 or 1) from NVS and sends it as a JSON response.
+  @returns JSON response with the current mode if valid, otherwise an error message to user via http.
+*/
 void get_mode(void) {
   NVS_Read("mode_s", &mode_s);
   if (mode_s == 0 || mode_s == 1){
@@ -30,7 +34,11 @@ void get_mode(void) {
     server.send(200, "application/json", "{\"error\":\"Error mode_num parameter\"}");
   }
 }
-
+/**
+/*!
+  @brief Sets the mode (0 or 1) based on the JSON request if configuration is enabled.
+  @returns JSON response indicating success or an error message to user via http.
+*/
 void set_mode(void) {
   if (setup_cfg.enable_cfg == 1) {
     String body = server.arg("plain");
@@ -51,13 +59,24 @@ void set_mode(void) {
     server.send(200, "application/json", "{\"error\":\"program doesn't work.\"}");
   }
 }
-
+/**
+/*!
+  @brief Converts a hexadecimal string to a byte array.
+  @param hexString The hexadecimal string to convert.
+  @param byteArray The byte array to store the converted bytes.
+*/
 void hexStringToBytes(String hexString, uint8_t *byteArray) {
   for (int i = 0; i < 8; i++) {
     byteArray[i] = strtoul(hexString.substring(i*2, i*2+2).c_str(), NULL, 16);
   }
 }
-
+/**
+/*!
+  @brief Converts a byte array to a hexadecimal string.
+  @param byteArray The byte array to convert.
+  @param length The length of the byte array.
+  @returns A hexadecimal string representation of the byte array.
+*/
 String bytesToHexString(const uint8_t* byteArray, size_t length) {
     String hexString;
     for (size_t i = 0; i < length; i++) {
@@ -68,7 +87,11 @@ String bytesToHexString(const uint8_t* byteArray, size_t length) {
     }
     return hexString;
 }
-
+/**
+/*!
+  @brief Sets periodic mode configuration based on the JSON request if configuration is enabled and mode is 0.
+  @returns JSON response indicating success or an error message to user via http.
+*/
 void set_periodic_cfg(void) {
   if (setup_cfg.enable_cfg == 1 && setup_cfg.mode_cfg == 0) {
     String body = server.arg("plain");
@@ -95,7 +118,11 @@ void set_periodic_cfg(void) {
     server.send(200, "application/json", "{\"error\":\"program doesn't work.\"}");
   }
 }
-
+/**
+/*!
+  @brief Sets request-response mode configuration based on the JSON request if configuration is enabled and mode is 1.
+  @returns JSON response indicating success or an error message to user via http.
+*/
 void set_req_res_cfg(void) {
   if (setup_cfg.enable_cfg == 1 && setup_cfg.mode_cfg == 1 ) {
     String body = server.arg("plain");
@@ -125,7 +152,11 @@ void set_req_res_cfg(void) {
     server.send(200, "application/json", "{\"error\":\"program doesn't work.\"}");
   }
 }
-
+/**
+/*!
+  @brief Retrieves the periodic mode configuration if mode is 0.
+  @returns JSON response with the periodic mode configuration or an error message to user via http.
+*/
 void get_periodic_cfg(void) {
   NVS_Read("mode_s", &mode_s);
   NVS_Read("periodic_s", &periodic_s);
@@ -150,7 +181,11 @@ void get_periodic_cfg(void) {
   }
 
 }
-
+/**
+/*!
+  @brief Retrieves the request-response mode configuration if mode is 1.
+  @returns JSON response with the request-response mode configuration or an error message to user via http.
+*/
 void get_req_res_cfg(void) {
   NVS_Read("mode_S", &mode_s);
   NVS_Read("response_s", &response_s);
@@ -176,7 +211,11 @@ void get_req_res_cfg(void) {
     server.send(200, "application/json", "{\"error\":\"don't have request/response config.\"}");
   }
 }
-
+/**
+/*!
+  @brief Starts or stops the program based on the JSON request.
+  @returns JSON response indicating success or an error message to user via http.
+*/
 void start_stop_program(void){
   String body = server.arg("plain");
   JsonDocument doc;
@@ -192,7 +231,11 @@ void start_stop_program(void){
     server.send(200, "application/json", "{\"error\":\"Error enable parameter\"}");
   }
 }
-
+/**
+/*!
+  @brief Retrieves the current program running state (either 0 or 1) from NVS and sends it as a JSON response.
+  @returns JSON response with the current program running state if valid, otherwise an error message to user via http.
+*/
 void get_program_running(void){
   NVS_Read("enable_s", &enable_s);
   if (enable_s == 0 || enable_s == 1){
@@ -204,7 +247,11 @@ void get_program_running(void){
     server.send(200, "application/json", "{\"error\":\"Error enable parameter\"}");
   }
 }
-
+/**
+/*!
+  @brief Retrieves the current bitrate from NVS and sends it as a JSON response.
+  @returns JSON response with the current bitrate if valid, otherwise an error message to user via http.
+*/
 void get_bitrate(void) {
   NVS_Read("bit_s", &bit_s);
   if (bit_s != 0){
@@ -216,7 +263,11 @@ void get_bitrate(void) {
     server.send(200, "application/json", "{\"error\":\"Error bitrates parameter\"}");
   }
 }
-
+/**
+/*!
+  @brief Sets the bitrate of CAN protocol based on the JSON request if configuration is enabled.
+  @returns JSON response indicating success or an error message to user via http.
+*/
 void set_bitrate(void) {
   if (setup_cfg.enable_cfg == 1) {
     String body = server.arg("plain");
@@ -250,7 +301,10 @@ void set_bitrate(void) {
     server.send(200, "application/json", "{\"error\":\"program doesn't work.\"}");
   }
 }
-
+/**
+/*!
+  @brief Sets up HTTP server routes and starts the server to handle client requests.
+*/
 void http_entry(void *pvParameters){
   server.on("/enable", HTTP_GET, get_program_running);
   server.on("/enable", HTTP_POST, start_stop_program);
