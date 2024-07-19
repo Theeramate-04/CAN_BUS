@@ -226,6 +226,17 @@ void start_stop_program(void){
   if (enable == 0 || enable == 1){
     NVS_Write("enable_s", enable);
     setup_cfg.enable_cfg = enable;
+    if (enable == 0){
+      out_msg.check_stop = true;
+      rc = xQueueSend(httpQueue, &out_msg, 100);
+      if (rc == pdTRUE) {
+        Serial.println("TSK_HTTP:Report data OK");
+      }
+      else {
+        Serial.printf("TSK_HTTP:Report data FAIL %d\r\n", rc);
+      }
+    }
+    out_msg.check_stop = false;
     server.send(200, "application/json", "{\"Set enable\":\"ok\"}");
   }
   else{
@@ -276,8 +287,7 @@ void set_bitrate(void) {
     deserializeJson(doc, body);
 
     int Bit = doc["bitrate"];
-    Serial.println(Bit);
-    std::vector<int> vec = {10000, 20000, 40000, 50000, 80000, 100000, 125000, 200000, 250000, 500000, 1000000};
+    std::vector<int> vec = {25000, 50000, 100000, 125000, 250000, 500000, 800000, 1000000};
     if (std::find(vec.begin(), vec.end(), Bit) != vec.end()){
       double send_bit = Bit;
       NVS_Write("bit_s", send_bit);

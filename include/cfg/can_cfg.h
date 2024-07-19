@@ -5,7 +5,7 @@
 
 struct setUp_cfg {
   int enable_cfg =3;
-  double bit_cfg;
+  int bit_cfg;
   int mode_cfg = 3;
   int periodic_count_cfg;
   int response_count_cfg;
@@ -13,7 +13,7 @@ struct setUp_cfg {
 
 struct setUp_cfg_new {
   int enable_cfg =3;
-  double bit_cfg;
+  int bit_cfg;
   int mode_cfg = 3;
   int periodic_count_cfg;
   int response_count_cfg;
@@ -54,10 +54,12 @@ struct can_response_check {
 
 enum mode_event {
   PERIOD_MODE,
-  REQ_RES_MODE
+  REQ_RES_MODE,
+  STOP_MODE
 };
 
 struct queue_msg {
+  bool check_stop = false;
   bool check_change = false;
 };
 

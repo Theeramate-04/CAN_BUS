@@ -3,6 +3,7 @@
 
 void setup_can(void);
 void setup_can_cfg(void);
+void on_receive(void);
 void mode1(void);
 void mode2(void);
 void can_entry(void *pvParameters);

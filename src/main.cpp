@@ -1,7 +1,8 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
-#include <CAN.h>
+#include "driver/gpio.h"
+#include "driver/twai.h"
 #include <Arduino.h>
 #include <esp_intr_alloc.h>
 #include <nvs_flash.h>
