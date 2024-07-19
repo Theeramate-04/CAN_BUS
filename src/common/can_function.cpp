@@ -32,7 +32,7 @@ void setup_can(void){
   twai_general_config_t g_config = { 
     .mode = TWAI_MODE_NORMAL,
     .tx_io = GPIO_NUM_27, //set up TX pin as 27
-    .rx_io = GPIO_NUM_26, //set up RX pin as 27
+    .rx_io = GPIO_NUM_26, //set up RX pin as 26
     .clkout_io = ((gpio_num_t) - 1),
     .bus_off_io = ((gpio_num_t) - 1),
     .tx_queue_len = 5,
