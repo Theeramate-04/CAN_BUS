@@ -16,7 +16,7 @@
 
 extern http_periodic http_periodic_messages[30];
 extern http_response http_response_messages[30];
-extern QueueHandle_t httpQueue;
+extern QueueHandle_t can_queue;
 can_periodic can_periodic_messages[30];
 can_response can_response_messages[30];
 mode_event mode_evt;
@@ -214,7 +214,7 @@ void can_entry(void *pvParameters){
       default:
         break;
     }
-    rc = xQueueReceive(httpQueue, &in_msg, 100);
+    rc = xQueueReceive(can_queue, &in_msg, 100);
     if (rc == pdPASS) {
       if(in_msg.check_change){
         Serial.println("Receive new config");

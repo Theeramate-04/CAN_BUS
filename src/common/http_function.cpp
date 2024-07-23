@@ -10,7 +10,7 @@
 #include "cfg/host.h"
 
 extern WebServer server;
-extern QueueHandle_t httpQueue;
+extern QueueHandle_t can_queue;
 setUp_cfg setup_cfg;
 http_periodic http_periodic_messages[30];
 http_response http_response_messages[30];
@@ -228,7 +228,7 @@ void start_stop_program(void){
     setup_cfg.enable_cfg = enable;
     if (enable == 0){
       out_msg.check_stop = true;
-      rc = xQueueSend(httpQueue, &out_msg, 100);
+      rc = xQueueSend(can_queue, &out_msg, 100);
       if (rc == pdTRUE) {
         Serial.println("TSK_HTTP:Report data OK");
       }
@@ -294,7 +294,7 @@ void set_bitrate(void) {
       setup_cfg.bit_cfg = send_bit;
       server.send(200, "application/json", "{\"Set bitrate\":\"ok\"}");
       out_msg.check_change = true;
-      rc = xQueueSend(httpQueue, &out_msg, 100);
+      rc = xQueueSend(can_queue, &out_msg, 100);
       if (rc == pdTRUE) {
         Serial.println("TSK_HTTP:Report data OK");
       }
