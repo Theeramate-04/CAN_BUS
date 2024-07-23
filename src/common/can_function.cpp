@@ -40,7 +40,7 @@ void setup_can(void){
     .alerts_enabled = TWAI_ALERT_NONE,
     .clkout_divider = 0
   };
-  twai_timing_config_t t_config;
+  twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
   twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
   
   switch (setup_cfg_new.bit_cfg) {
@@ -69,6 +69,7 @@ void setup_can(void){
         t_config = TWAI_TIMING_CONFIG_25KBITS();
         break;
       default:
+        Serial.println("Unknown bitrate parameter, using default 500kbps");
         break;
   }
 
@@ -157,10 +158,10 @@ void mode1(void){
           memcpy(can_msg.data, can_periodic_messages[i].data, sizeof(can_msg.data));
           if (twai_transmit(&can_msg, pdMS_TO_TICKS(1000)) == ESP_OK) {
             delay(2);
-            //.println("Message from mode 1 has been sent.");
+            Serial.println("Message from mode 1 has been sent.");
           } 
           else {
-            //Serial.println("Failed to sent message from mode 1.");
+            Serial.println("Failed to sent message from mode 1.");
           }
           can_periodic_messages[i].lastSent = now;
         }
@@ -185,10 +186,10 @@ void mode2(void){
           if (twai_transmit(&can_msg, pdMS_TO_TICKS(1000)) == ESP_OK) {
             memset(responseCheck.data, 0, sizeof(responseCheck.data)); 
             delay(2);
-            //Serial.println("Message from mode 2 has been sent.");
+            Serial.println("Message from mode 2 has been sent.");
           } 
           else {
-            //Serial.println("Failed to sent message from mode 2.");
+            Serial.println("Failed to sent message from mode 2.");
           }
         }
       }
