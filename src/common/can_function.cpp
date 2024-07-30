@@ -23,7 +23,10 @@ mode_event mode_evt;
 can_response_check responseCheck;
 setUp_cfg_new setup_cfg_new;
 twai_message_t can_msg;
-
+static int install_reboot_count = 0;
+static int start_reboot_count = 0;
+static int stop_reboot_count = 0;
+static int uninstall_reboot_count = 0;
 /**
 /*!
     @brief  Configures CAN settings such as pins and bitrate.
@@ -73,14 +76,24 @@ void setup_can(void){
         break;
   }
 
-  if (twai_driver_install(&g_config, &t_config, &f_config) != ESP_OK) {
+  while (twai_driver_install(&g_config, &t_config, &f_config) != ESP_OK) {
     Serial.println("Failed to setup CAN");
-    return;
+    install_reboot_count += 1;
+    if (install_reboot_count == 3){
+      install_reboot_count = 0;
+      ESP.restart();  
+    }
+    delay(1000);
   }
 
-  if (twai_start() != ESP_OK) {
+  while (twai_start() != ESP_OK) {
     Serial.println("Failed to start CAN");
-    return;
+    start_reboot_count += 1;
+    if (start_reboot_count == 3){
+      start_reboot_count = 0;
+      ESP.restart();  
+    }
+    delay(1000);
   }
 }
 /**
@@ -236,7 +249,6 @@ void mode2(void){
     @brief  Main CAN task that handles configuration and mode switching.
 */
 void can_entry(void *pvParameters){
-  int reboot_count = 0;
   queue_msg in_msg;
   setup_can_cfg();
   setup_can();
@@ -256,19 +268,25 @@ void can_entry(void *pvParameters){
     if (rc == pdPASS) {
       if(in_msg.check_change){
         Serial.println("Receive new config");
-        if (twai_stop() != ESP_OK || twai_driver_uninstall() != ESP_OK) {
-          if (twai_stop() != ESP_OK) {
+        while (twai_stop() != ESP_OK) {
           Serial.println("Failed to stop CAN");
-          }
-          if (twai_driver_uninstall() != ESP_OK) {
-            Serial.println("Failed to reset CAN setup");
-          }
-          reboot_count += 1;
-          if (reboot_count == 3){
+          stop_reboot_count += 1;
+          if (stop_reboot_count == 3){
+            stop_reboot_count = 0;
             ESP.restart();  
           }
+          delay(1000);
         }
-        else {
+        while (twai_driver_uninstall() != ESP_OK) {
+          Serial.println("Failed to reset CAN setup");
+          uninstall_reboot_count += 1;
+          if (uninstall_reboot_count == 3){
+            uninstall_reboot_count = 0;
+            ESP.restart();  
+          }
+          delay(1000);
+        }
+        if(twai_stop() == ESP_OK && twai_driver_uninstall() == ESP_OK ) {
           setup_can_cfg();
           setup_can(); 
         }
