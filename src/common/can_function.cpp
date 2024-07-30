@@ -88,43 +88,72 @@ void setup_can(void){
     @brief  Sets up CAN configuration from NVS storage.
 */
 void setup_can_cfg(void){
-  NVS_Read("enable_s", &enable_s);
-  NVS_Read("mode_s", &mode_s);
-  NVS_Read("bit_s", &bit_s);
-  setup_cfg_new.mode_cfg = mode_s;
-  setup_cfg_new.enable_cfg = enable_s;
-  setup_cfg_new.bit_cfg = bit_s;
-  char key[20];
-  if (mode_s == 0 && enable_s == 1) {
-    mode_evt = mode_event::PERIOD_MODE;
-    NVS_Read("periodic_s", &periodic_s);
-    setup_cfg_new.periodic_count_cfg = periodic_s;
-    for (int i = 0; i < periodic_s; i++) {
-      sprintf(key, "peri_struct%d", i + 1);
-      if (NVS_Read_Struct(key, &http_periodic_messages[i], sizeof(http_periodic)) == ESP_OK) {
-        can_periodic_messages[i].id = http_periodic_messages[i].id;
-        memcpy(can_periodic_messages[i].data, http_periodic_messages[i].data, sizeof(can_periodic_messages[i].data));
-        can_periodic_messages[i].period = http_periodic_messages[i].period;
-        can_periodic_messages[i].lastSent = http_periodic_messages[i].lastSent;
-      }
-    }
+  esp_err_t err_enable = NVS_Read("enable_s", &enable_s);
+  esp_err_t err_mode = NVS_Read("mode_s", &mode_s);
+  esp_err_t err_bit = NVS_Read("bit_s", &bit_s);
+  if(err_enable != ESP_OK){
+    printf("Error (%s) to read enable parameter \n", esp_err_to_name(err_enable));
   }
-  else if (mode_s == 1 && enable_s == 1) {
-    mode_evt = mode_event::REQ_RES_MODE;
-    NVS_Read("response_s", &response_s);
-    setup_cfg_new.response_count_cfg = response_s;
-    for (int i = 0; i < response_s; i++) {
-      sprintf(key, "res_struct%d", i + 1);
-      if (NVS_Read_Struct(key, &http_response_messages[i], sizeof(http_response)) == ESP_OK) {
-        can_response_messages[i].id = http_response_messages[i].id;
-        memcpy(can_response_messages[i].data, http_response_messages[i].data, sizeof(can_response_messages[i].data));
-        can_response_messages[i].responseId = http_response_messages[i].responseId;
-        memcpy(can_response_messages[i].responseData, http_response_messages[i].responseData, sizeof(can_response_messages[i].responseData));
-      }
-    }
+  else if(err_mode != ESP_OK){
+    printf("Error (%s) to read mode parameter\n", esp_err_to_name(err_mode));
+  }
+  else if(err_bit != ESP_OK){
+    printf("Error (%s) to read bitrate parameter\n", esp_err_to_name(err_bit));
   }
   else{
-    mode_evt = mode_event::STOP_MODE;
+    setup_cfg_new.mode_cfg = mode_s;
+    setup_cfg_new.enable_cfg = enable_s;
+    setup_cfg_new.bit_cfg = bit_s;
+    char key[20];
+    if (mode_s == 0 && enable_s == 1) {
+      mode_evt = mode_event::PERIOD_MODE;
+      esp_err_t err_periodic_count = NVS_Read("periodic_s", &periodic_s);
+      if(err_periodic_count == ESP_OK){
+        setup_cfg_new.periodic_count_cfg = periodic_s;
+        for (int i = 0; i < periodic_s; i++) {
+          sprintf(key, "peri_struct%d", i + 1);
+          esp_err_t err_struct = NVS_Read_Struct(key, &http_periodic_messages[i], sizeof(http_periodic));
+          if (err_struct == ESP_OK) {
+            can_periodic_messages[i].id = http_periodic_messages[i].id;
+            memcpy(can_periodic_messages[i].data, http_periodic_messages[i].data, sizeof(can_periodic_messages[i].data));
+            can_periodic_messages[i].period = http_periodic_messages[i].period;
+            can_periodic_messages[i].lastSent = http_periodic_messages[i].lastSent;
+          }
+          else {
+            printf("Error (%s) to read periodic mode config \n", esp_err_to_name(err_struct));
+          }
+        }
+      }
+      else {
+        printf("Error (%s) to read periodic count parameter \n", esp_err_to_name(err_periodic_count));
+      }
+    }
+    else if (mode_s == 1 && enable_s == 1) {
+      mode_evt = mode_event::REQ_RES_MODE;
+      esp_err_t err_response_count = NVS_Read("response_s", &response_s);
+      if(err_response_count == ESP_OK){
+        setup_cfg_new.response_count_cfg = response_s;
+        for (int i = 0; i < response_s; i++) {
+          sprintf(key, "res_struct%d", i + 1);
+          esp_err_t err_struct = NVS_Read_Struct(key, &http_response_messages[i], sizeof(http_response));
+          if (err_struct == ESP_OK) {
+            can_response_messages[i].id = http_response_messages[i].id;
+            memcpy(can_response_messages[i].data, http_response_messages[i].data, sizeof(can_response_messages[i].data));
+            can_response_messages[i].responseId = http_response_messages[i].responseId;
+            memcpy(can_response_messages[i].responseData, http_response_messages[i].responseData, sizeof(can_response_messages[i].responseData));
+          }
+          else {
+            printf("Error (%s) to read request-response mode config \n", esp_err_to_name(err_struct));
+          }
+        }
+      }
+      else{
+        printf("Error (%s) to read request-response count parameter \n", esp_err_to_name(err_response_count));
+      }
+    }
+    else{
+      mode_evt = mode_event::STOP_MODE;
+    }
   }
 }
 /**
@@ -133,6 +162,7 @@ void setup_can_cfg(void){
 */
 void on_receive(void) {
   if (twai_receive(&can_msg, pdMS_TO_TICKS(10000)) != ESP_OK) {
+    Serial.println("Failed to receive CAN message");
     return;
   }
   responseCheck.id = can_msg.identifier;
@@ -167,6 +197,9 @@ void mode1(void){
         }
     }
   }
+  else {
+    Serial.println("The program has stopped working.");
+  }
 }
 /**
 /*!
@@ -193,13 +226,17 @@ void mode2(void){
           }
         }
       }
-    }
+  }
+  else {
+    Serial.println("The program has stopped working.");
+  }
 }
 /**
 /*!
     @brief  Main CAN task that handles configuration and mode switching.
 */
 void can_entry(void *pvParameters){
+  int reboot_count = 0;
   queue_msg in_msg;
   setup_can_cfg();
   setup_can();
@@ -219,14 +256,22 @@ void can_entry(void *pvParameters){
     if (rc == pdPASS) {
       if(in_msg.check_change){
         Serial.println("Receive new config");
-        if (twai_stop() != ESP_OK) {
+        if (twai_stop() != ESP_OK || twai_driver_uninstall() != ESP_OK) {
+          if (twai_stop() != ESP_OK) {
           Serial.println("Failed to stop CAN");
+          }
+          if (twai_driver_uninstall() != ESP_OK) {
+            Serial.println("Failed to reset CAN setup");
+          }
+          reboot_count += 1;
+          if (reboot_count == 3){
+            ESP.restart();  
+          }
         }
-        if (twai_driver_uninstall() != ESP_OK) {
-          Serial.println("Failed to reset CAN setup");
+        else {
+          setup_can_cfg();
+          setup_can(); 
         }
-        setup_can_cfg();
-        setup_can(); 
       }
       else if(in_msg.check_stop) {
         Serial.println("Received command to stop the program.");

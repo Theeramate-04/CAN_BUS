@@ -153,7 +153,7 @@ esp_err_t NVS_Read_Struct(const char *data, void *Get_Data, size_t size) {
     @param  data  The key for the value to be written.
     @param  write_string  The string value to be written.
 */
-void NVS_Write(const char *data,const char *write_string){
+esp_err_t NVS_Write(const char *data,const char *write_string){
 	if (xSemaphoreTake(Mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
 	    printf("\n");
 	    printf("Opening Non-Volatile Storage (NVS) handle... ");
@@ -161,6 +161,7 @@ void NVS_Write(const char *data,const char *write_string){
 	    esp_err_t err = nvs_open("storage", NVS_READWRITE, &my_handle);
 	    if (err != ESP_OK) {
 	        printf("Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+			return err;
 	    } 
 		else {
 			err = nvs_set_str(my_handle, data, write_string);
@@ -181,6 +182,7 @@ void NVS_Write(const char *data,const char *write_string){
 	    }
 	    nvs_close(my_handle);
 		xSemaphoreGive(Mutex);
+		return err;
 	}
 }
 /**
@@ -189,7 +191,7 @@ void NVS_Write(const char *data,const char *write_string){
     @param  data  The key for the value to be written.
     @param  write_int  The integer value to be written.
 */
-void NVS_Write(const char *data,int write_int){
+esp_err_t NVS_Write(const char *data,int write_int){
 	if (xSemaphoreTake(Mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
 	    printf("\n");
 	    printf("Opening Non-Volatile Storage (NVS) handle... ");
@@ -197,6 +199,7 @@ void NVS_Write(const char *data,int write_int){
 	    esp_err_t err = nvs_open("storage", NVS_READWRITE, &my_handle);
 	    if (err != ESP_OK) {
 	        printf("Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+			return err;
 	    } 
 		else {
 			err = nvs_set_i32(my_handle, data, write_int);
@@ -217,6 +220,7 @@ void NVS_Write(const char *data,int write_int){
 	    }
 	    nvs_close(my_handle);
 		xSemaphoreGive(Mutex);
+		return err;
 	}
 }
 /**
@@ -226,7 +230,7 @@ void NVS_Write(const char *data,int write_int){
     @param  data  The buffer containing the data to be written.
     @param  size  The size of the data buffer.
 */
-void NVS_Write_Struct(const char *key, const void *data, size_t size) {
+esp_err_t NVS_Write_Struct(const char *key, const void *data, size_t size) {
 	if (xSemaphoreTake(Mutex, pdMS_TO_TICKS(1000)) == pdTRUE) {
 		printf("\n");
 		printf("Opening Non-Volatile Storage (NVS) handle... ");
@@ -234,6 +238,7 @@ void NVS_Write_Struct(const char *key, const void *data, size_t size) {
 		esp_err_t err = nvs_open("storage", NVS_READWRITE, &my_handle);
 		if (err != ESP_OK) {
 			printf("Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+			return err;
 		} else {
 			err = nvs_set_blob(my_handle, key, data, size);
 			if (err != ESP_OK) {
@@ -252,5 +257,6 @@ void NVS_Write_Struct(const char *key, const void *data, size_t size) {
 		}
 		nvs_close(my_handle);
 		xSemaphoreGive(Mutex);
+		return err;
 	}
 }

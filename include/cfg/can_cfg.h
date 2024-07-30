@@ -53,8 +53,8 @@ struct can_response_check {
 };
 
 enum mode_event {
-  PERIOD_MODE,
-  REQ_RES_MODE,
+  PERIOD_MODE =1 ,
+  REQ_RES_MODE =2,
   STOP_MODE
 };
 
